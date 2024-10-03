@@ -1,0 +1,15 @@
+[package]
+name = "gui-scale-applet"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+once_cell = "1"
+rust-embed = "8.0.0"
+serde = "1.0.210"
+tracing = "0.1"
+
+[dependencies.libcosmic]
+git = "https://github.com/pop-os/libcosmic.git"
+default-features = false
+features = ["applet", "wayland", "tokio"]

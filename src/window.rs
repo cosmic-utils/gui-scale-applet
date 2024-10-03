@@ -1,0 +1,169 @@
+use cosmic::app::Core;
+use cosmic::iced::{
+    wayland::popup::{destroy_popup, get_popup},
+    window::Id,
+    Command, 
+    Limits
+};
+use cosmic::iced_runtime::core::window;
+use cosmic::iced_style::application;
+use cosmic::widget::{list_column, settings, text, toggler};
+use cosmic::{Element, Theme};
+use crate::logic::{
+    get_tailscale_con_status, 
+    get_tailscale_ip, 
+    get_tailscale_routes_status, 
+    get_tailscale_ssh_status,  
+    set_ssh,
+    set_routes,
+    tailscale_int_up
+};
+
+const ID: &str = "com.github.bhh32.GUIScaleApplet";
+
+#[derive(Default)]
+pub struct Window {
+    core: Core,
+    popup: Option<Id>,
+    ssh: bool,
+    routes: bool,
+    connect: bool,
+}
+
+#[derive(Clone, Debug)]
+pub enum Message {
+    TogglePopup,
+    PopupClosed(Id),
+    UpdateStatusRow(bool),
+    EnableSSH(bool),
+    AcceptRoutes(bool),
+    ConnectDisconnect(bool),
+}
+
+impl cosmic::Application for Window {
+    type Executor = cosmic::SingleThreadExecutor;
+    type Flags = ();
+    type Message = Message;
+    const APP_ID: &'static str = ID;
+    
+    fn core(&self) -> &Core {
+        &self.core
+    }
+
+    fn core_mut(&mut self) -> &mut Core {
+        &mut self.core
+    }
+
+    fn init(
+        core: Core,
+        _flags: Self::Flags,
+    ) -> (Self, Command<cosmic::app::Message<Self::Message>>) {
+        let ssh = get_tailscale_ssh_status();
+        let routes = get_tailscale_routes_status();
+        let connect = get_tailscale_con_status();
+        let window = Window {
+            core,
+            ssh,
+            routes,
+            connect,
+            ..Default::default()
+        };
+
+        (window, Command::none())
+    }
+
+    fn on_close_requested(&self, id: window::Id) -> Option<Message> {
+        Some(Message::PopupClosed(id))
+    }
+
+    fn update(&mut self, message: Self::Message) -> Command<cosmic::app::Message<Self::Message>> {
+        match message {
+            Message::TogglePopup => {
+                return if let Some(p) = self.popup.take() {
+                    destroy_popup(p)
+                } else {
+                    let new_id = Id::unique();
+                    self.popup.replace(new_id);
+
+                    let mut popup_settings =
+                        self.core
+                            .applet
+                            .get_popup_settings(Id::MAIN, new_id, None, None, None);
+
+                    popup_settings.positioner.size_limits = Limits::NONE
+                            .max_width(372.0)
+                            .min_width(300.0)
+                            .min_height(200.0)
+                            .max_height(1080.0);
+                    
+                    get_popup(popup_settings)
+                }
+            }
+            Message::PopupClosed(id) => {
+                if self.popup.as_ref() == Some(&id) {
+                    self.popup = None;
+                }
+            }
+            Message::UpdateStatusRow(updated) => {},
+            Message::EnableSSH(enabled) => {
+                self.ssh = enabled;
+                set_ssh(self.ssh);
+            }
+            Message::AcceptRoutes(accepted) => {
+                self.routes = accepted;
+                set_routes(self.routes);
+            }
+            Message::ConnectDisconnect(connection) => {
+                self.connect = connection;
+                tailscale_int_up(self.connect);
+            }
+        }
+        Command::none()
+    }
+
+    fn view(&self) -> Element<Self::Message> {
+        self.core
+            .applet
+            .icon_button("tailscale-icon")
+            .on_press(Message::TogglePopup)
+            .into()
+    }
+
+    fn view_window(&self, _id: Id) -> Element<Self::Message> {
+        let ip = get_tailscale_ip();
+        let conn_status = get_tailscale_con_status();
+        let content_list = list_column().padding(5).spacing(0).add(settings::item(
+            "IPv4 Address",
+            text(ip.clone()),
+            ),
+        )
+        .add(settings::item(
+            "Connection Status",
+            text(if conn_status { "Tailscale Connected" } else { "Tailscale Disconnected" })
+        ))
+        .add(settings::item(
+            "Enable SSH",
+            toggler(None, self.ssh, |value| {
+                Message::EnableSSH(value)
+            }),
+        ))
+        .add(settings::item(
+            "Accept Routes",
+            toggler(None, self.routes, |value| {
+                Message::AcceptRoutes(value)
+            }),
+        ))
+        .add(settings::item(
+            "Connected",
+            toggler(None, self.connect, |value| {
+                Message::ConnectDisconnect(value)
+            }),
+        ));
+
+        self.core.applet.popup_container(content_list).into()
+    }
+
+    fn style(&self) -> Option<<Theme as application::StyleSheet>::Style> {
+        Some(cosmic::applet::style())
+    }
+}

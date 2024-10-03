@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=GUI-Scale Applet
+Type=Application
+Exec=gui-scale-applet
+Terminal=false
+Categories=COSMIC;
+Keywords=COSMIC;Iced;
+Icon=tailscale-icon
+StartupNotify=true
+NoDisplay=true
+X-CosmicApplet=true
+X-CosmicHoverPopup=Start
+x-OverflowPriority=10

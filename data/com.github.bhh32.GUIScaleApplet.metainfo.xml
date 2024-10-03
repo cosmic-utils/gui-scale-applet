@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>com.github.bhh32.GUIScaleApplet</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>BSD-3.0-only</project_license>
+    <project_group>COSMIC</project_group>
+    <developer_name>Bryan Hyland</developer_name>
+    <update_contact>bryan.hyland32@gmail.com</update_contact>
+    <url type="bhh32.com"></url>
+    <name>GUI-Scale Applet</name>
+    <summary>Linux GUI Wrapper Applet for the Tailscale CLI</summary>
+    <description>
+        <p>Linux GUI wrapper applet for the Tailscale CLI</p>
+    </description>
+    <launchable type="desktop-id">com.github.bhh32.GUIScaleApplet.desktop</launchable>
+    <icon type="remote" height="128" width="128">https://raw.githubusercontent.com/bhh32/gui-scale-applet/data/icons/tailscale-icon.png</icon>
+    <screenshots></screenshots>
+    <provides>
+        <mimetypes>
+            <mimetype>text/plain</mimetype>
+        </mimetypes>
+        <binaries>
+            <binary>gui-scale-applet</binary>
+        </binaries>
+    </provides>
+</component>
