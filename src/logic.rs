@@ -1,5 +1,5 @@
 use std::{
-    io::Error, 
+    io::{Error, Write}, 
     process::{Command, Output, Stdio}
 };
 
@@ -35,6 +35,23 @@ pub fn get_tailscale_con_status() -> bool {
     }
 
     false
+}
+
+pub fn get_tailscale_devices() -> Vec<String> {
+    let ts_status_cmd = Command::new("tailscale")
+        .arg("status")
+        .output();
+
+    let out = match String::from_utf8(ts_status_cmd.unwrap().stdout) {
+        Ok(s) => s,
+        Err(e) => format!("Error getting the status output: {e}"),
+    };
+
+    let status_output: Vec<String> = out.lines().map(|line| {
+        line.split_whitespace().skip(1).next().expect("Device name not found").to_string()
+    }).collect();
+
+    status_output
 }
 
 /// Get the current status of the SSH enablement

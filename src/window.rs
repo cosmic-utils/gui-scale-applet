@@ -1,4 +1,5 @@
 use cosmic::app::Core;
+use cosmic::iced::widget;
 use cosmic::iced::{
     wayland::popup::{destroy_popup, get_popup},
     window::Id,
@@ -13,21 +14,23 @@ use crate::logic::{
     get_tailscale_con_status, 
     get_tailscale_ip, 
     get_tailscale_routes_status, 
-    get_tailscale_ssh_status,  
+    get_tailscale_ssh_status,
+    get_tailscale_devices,
     set_ssh,
     set_routes,
-    tailscale_int_up
+    tailscale_int_up,
 };
 
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
 
-#[derive(Default)]
 pub struct Window {
     core: Core,
     popup: Option<Id>,
     ssh: bool,
     routes: bool,
     connect: bool,
+    device_state: cosmic::widget::combo_box::State<String>,
+    selected_device: String,
 }
 
 #[derive(Clone, Debug)]
@@ -38,6 +41,7 @@ pub enum Message {
     EnableSSH(bool),
     AcceptRoutes(bool),
     ConnectDisconnect(bool),
+    DeviceSelected(String),
 }
 
 impl cosmic::Application for Window {
@@ -61,12 +65,16 @@ impl cosmic::Application for Window {
         let ssh = get_tailscale_ssh_status();
         let routes = get_tailscale_routes_status();
         let connect = get_tailscale_con_status();
+        let dev_init = get_tailscale_devices();
         let window = Window {
             core,
             ssh,
             routes,
             connect,
-            ..Default::default()
+            device_state: widget::combo_box::State::new(dev_init),
+            popup: None,
+            selected_device: "No Selection".to_string(),
+            
         };
 
         (window, Command::none())
@@ -117,6 +125,11 @@ impl cosmic::Application for Window {
                 self.connect = connection;
                 tailscale_int_up(self.connect);
             }
+            Message::DeviceSelected(device) => {
+                self.selected_device = device;
+                // Debug Only
+                println!("selected Device: {}", self.selected_device);
+            }
         }
         Command::none()
     }
@@ -132,6 +145,7 @@ impl cosmic::Application for Window {
     fn view_window(&self, _id: Id) -> Element<Self::Message> {
         let ip = get_tailscale_ip();
         let conn_status = get_tailscale_con_status();
+
         let content_list = list_column().padding(5).spacing(0).add(settings::item(
             "IPv4 Address",
             text(ip.clone()),
@@ -158,6 +172,11 @@ impl cosmic::Application for Window {
             toggler(None, self.connect, |value| {
                 Message::ConnectDisconnect(value)
             }),
+        ))
+        .add(settings::item(
+            "Devices",
+            cosmic::widget::combo_box(&self.device_state, "No Selection", Some(&self.selected_device), Message::DeviceSelected)
+                .width(cosmic::iced::Length::Fill)
         ));
 
         self.core.applet.popup_container(content_list).into()
