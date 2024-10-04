@@ -4,8 +4,8 @@ This is a COSMIC applet for Tailscale. Currently, it's very basic, but I am work
 ## Dependencies
 You must first run:
 
-'''bash
+```bash
 sudo tailscale set --operator=$USER
-'''
+```
 
 This makes it where the applet doesnt need sudo to do it's job.
