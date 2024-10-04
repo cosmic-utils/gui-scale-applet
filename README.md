@@ -8,4 +8,4 @@ You must first run:
 sudo tailscale set --operator=$USER
 ```
 
-This makes it where the applet doesnt need sudo to do it's job.
+This makes it where the applet doesn't need sudo to do it's job.
