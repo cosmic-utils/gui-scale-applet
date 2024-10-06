@@ -50,8 +50,9 @@ pub enum Message {
     ConnectDisconnect(bool),
     DeviceSelected(String),
     ChooseFiles,
-    FileSelected(Url),
+    FilesSelected(Vec<Url>),
     SendFiles,
+    FilesSent,
     FileChoosingCancelled
 }
 
@@ -140,7 +141,7 @@ impl cosmic::Application for Window {
             Message::DeviceSelected(device) => {
                 self.selected_device = device;
                 // Debug Only
-                println!("selected Device: {}", self.selected_device);
+                //println!("selected Device: {}", self.selected_device);
             }
             Message::ChooseFiles => {
                 return cosmic::command::future(async move {
@@ -149,8 +150,8 @@ impl cosmic::Application for Window {
                         .title("Choose a file or files...")
                         .filter(file_filter);
 
-                    let msg = match dialog.open_file().await {
-                        Ok(file_response) => Message::FileSelected(file_response.url().to_owned()),
+                    let msg = match dialog.open_files().await {
+                        Ok(file_responses) => Message::FilesSelected(file_responses.urls().to_vec()),
                         Err(file_chooser::Error::Cancelled) => Message::FileChoosingCancelled,
                         Err(e) => {
                             eprintln!("Choosing a file or files went wrong: {e}");
@@ -161,27 +162,27 @@ impl cosmic::Application for Window {
                     msg
                 });
             }
-            Message::FileSelected(url) => {
-                let path = match url.to_file_path() {
-                    Ok(good_path) => good_path,
-                    Err(_e) => {
-                        PathBuf::new()
-                    }
-                };
+            Message::FilesSelected(urls) => {
+                for url in urls.iter() {
+                    let path = match url.to_file_path() {
+                        Ok(good_path) => good_path,
+                        Err(_e) => PathBuf::new(),
+                    };
 
-                if path.exists() {
-                    self.send_files.push(Some(match path.as_path().to_str() {
-                        Some(p) => String::from(p),
-                        None => String::new()
-                    }));
+                    if path.exists() {
+                        self.send_files.push(Some(match path.as_path().to_str() {
+                            Some(f_path) => String::from(f_path),
+                            None => String::new()
+                        }));
+                    }
                 }
             }
             Message::SendFiles => {
-                let send_statuses = tailscale_send(self.send_files.clone(), &self.selected_device);
-
-                for status in send_statuses.iter() {
-                    self.send_file_status.push(status.clone());
-                }
+                self.send_file_status = tailscale_send(self.send_files.clone(), &self.selected_device);
+            }
+            Message::FilesSent => {
+                self.send_files = Vec::<Option<String>>::new();
+                // TODO: Something with the statuses
             }
             Message::FileChoosingCancelled => {
 

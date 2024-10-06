@@ -132,7 +132,7 @@ pub fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Vec<Opti
         let _ = match path {
             Some(p) => {
                 let cmd = Command::new("tailscale")
-                .args(["file", "cp", p, target, ":"])
+                .args(["file", "cp", p, &format!("{target}:")])
                 .spawn();
 
                 let _ = match cmd.unwrap().stderr {
