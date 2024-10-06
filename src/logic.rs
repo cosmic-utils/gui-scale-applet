@@ -1,6 +1,5 @@
 use std::{
-    io::{Error, Read, Write}, 
-    process::{Command, Output, Stdio}
+    collections::VecDeque, io::{Error, Read, Write}, process::{Command, Output, Stdio}
 };
 
 /// Get the IPv4 address assigned to this computer.
@@ -47,11 +46,13 @@ pub fn get_tailscale_devices() -> Vec<String> {
         Err(e) => format!("Error getting the status output: {e}"),
     };
 
-    let status_output: Vec<String> = out.lines().map(|line| {
+    let mut status_output: VecDeque<String> = out.lines().map(|line| {
         line.split_whitespace().skip(1).next().expect("Device name not found").to_string()
     }).collect();
 
-    status_output
+    status_output.pop_front();
+
+    status_output.to_owned().into()
 }
 
 /// Get the current status of the SSH enablement
@@ -97,7 +98,7 @@ pub fn get_tailscale_routes_status() -> bool {
 }
 
 /// Get available devices
-pub fn get_available_devices() -> String {
+pub fn _get_available_devices() -> String {
     let cmd = Command::new("tailscale")
         .args(["status", "--active"])
         .output();
@@ -124,7 +125,7 @@ pub fn tailscale_int_up(up_down: bool) -> bool {
     ret
 }
 
-pub fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Vec<Option<String>> {
+pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Vec<Option<String>> {
     let mut status = Vec::<Option<String>>::new();
 
     for path in file_paths.iter() {
@@ -150,6 +151,30 @@ pub fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Vec<Opti
     }
 
     status
+}
+
+pub async fn tailscale_recieve() -> String {
+    let whoami_cmd = Command::new("whoami")
+        .output()
+        .unwrap();
+
+    let username = String::from_utf8(whoami_cmd.stdout).unwrap();
+
+    let download_path = &format!("/home/{}/Downloads/", username.trim());
+    println!("Download path: {download_path}");
+    let rx_cmd = Command::new("tailscale")
+        .args(["file", "get", download_path])
+        .output();
+
+    let rx_stderr = rx_cmd.unwrap().stderr.clone();
+
+    let rx_status = if rx_stderr.is_empty() {
+        "Recieved file(s) in Downloads!".to_string()
+    } else {
+        String::from_utf8(rx_stderr).unwrap()
+    };
+
+    rx_status
 }
 
 /// Toggle SSH on/off
