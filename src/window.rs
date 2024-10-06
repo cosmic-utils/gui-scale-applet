@@ -1,24 +1,29 @@
+use std::path::PathBuf;
+use cosmic::dialog::file_chooser::{self, FileFilter};
+use tokio::io::AsyncReadExt;
 use cosmic::app::Core;
-use cosmic::iced::widget;
+use cosmic::iced::widget::{
+    self, 
+    column, 
+    row, 
+    vertical_space, 
+    horizontal_space,
+};
+use cosmic::iced_widget::{Column, Row};
 use cosmic::iced::{
     wayland::popup::{destroy_popup, get_popup},
     window::Id,
     Command, 
-    Limits
+    Limits,
+    Alignment,
 };
 use cosmic::iced_runtime::core::window;
 use cosmic::iced_style::application;
-use cosmic::widget::{list_column, settings, text, toggler};
+use cosmic::widget::{list_column, settings, text, toggler, combo_box, button};
 use cosmic::{Element, Theme};
+use url::Url;
 use crate::logic::{
-    get_tailscale_con_status, 
-    get_tailscale_ip, 
-    get_tailscale_routes_status, 
-    get_tailscale_ssh_status,
-    get_tailscale_devices,
-    set_ssh,
-    set_routes,
-    tailscale_int_up,
+    get_tailscale_con_status, get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status, set_routes, set_ssh, tailscale_int_up, tailscale_send
 };
 
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
@@ -31,6 +36,8 @@ pub struct Window {
     connect: bool,
     device_state: cosmic::widget::combo_box::State<String>,
     selected_device: String,
+    send_files: Vec<Option<String>>,
+    send_file_status: Vec<Option<String>>
 }
 
 #[derive(Clone, Debug)]
@@ -42,6 +49,10 @@ pub enum Message {
     AcceptRoutes(bool),
     ConnectDisconnect(bool),
     DeviceSelected(String),
+    ChooseFiles,
+    FileSelected(Url),
+    SendFiles,
+    FileChoosingCancelled
 }
 
 impl cosmic::Application for Window {
@@ -73,8 +84,9 @@ impl cosmic::Application for Window {
             connect,
             device_state: widget::combo_box::State::new(dev_init),
             popup: None,
-            selected_device: "No Selection".to_string(),
-            
+            selected_device: "No Device".to_string(),
+            send_files: Vec::<Option<String>>::new(),
+            send_file_status: Vec::<Option<String>>::new(),
         };
 
         (window, Command::none())
@@ -130,6 +142,50 @@ impl cosmic::Application for Window {
                 // Debug Only
                 println!("selected Device: {}", self.selected_device);
             }
+            Message::ChooseFiles => {
+                return cosmic::command::future(async move {
+                    let file_filter = FileFilter::new("Any").glob("*.*");
+                    let dialog = file_chooser::open::Dialog::new()
+                        .title("Choose a file or files...")
+                        .filter(file_filter);
+
+                    let msg = match dialog.open_file().await {
+                        Ok(file_response) => Message::FileSelected(file_response.url().to_owned()),
+                        Err(file_chooser::Error::Cancelled) => Message::FileChoosingCancelled,
+                        Err(e) => {
+                            eprintln!("Choosing a file or files went wrong: {e}");
+                            Message::FileChoosingCancelled
+                        }
+                    };
+
+                    msg
+                });
+            }
+            Message::FileSelected(url) => {
+                let path = match url.to_file_path() {
+                    Ok(good_path) => good_path,
+                    Err(_e) => {
+                        PathBuf::new()
+                    }
+                };
+
+                if path.exists() {
+                    self.send_files.push(Some(match path.as_path().to_str() {
+                        Some(p) => String::from(p),
+                        None => String::new()
+                    }));
+                }
+            }
+            Message::SendFiles => {
+                let send_statuses = tailscale_send(self.send_files.clone(), &self.selected_device);
+
+                for status in send_statuses.iter() {
+                    self.send_file_status.push(status.clone());
+                }
+            }
+            Message::FileChoosingCancelled => {
+
+            }
         }
         Command::none()
     }
@@ -146,38 +202,80 @@ impl cosmic::Application for Window {
         let ip = get_tailscale_ip();
         let conn_status = get_tailscale_con_status();
 
-        let content_list = list_column().padding(5).spacing(0).add(settings::item(
-            "IPv4 Address",
-            text(ip.clone()),
-            ),
-        )
-        .add(settings::item(
-            "Connection Status",
-            text(if conn_status { "Tailscale Connected" } else { "Tailscale Disconnected" })
-        ))
-        .add(settings::item(
-            "Enable SSH",
-            toggler(None, self.ssh, |value| {
-                Message::EnableSSH(value)
-            }),
-        ))
-        .add(settings::item(
-            "Accept Routes",
-            toggler(None, self.routes, |value| {
-                Message::AcceptRoutes(value)
-            }),
-        ))
+        let mut status_elements: Vec<Element<'_, Message>> = Vec::new();
+
+        status_elements.push(Element::from(
+            column!(
+                row!(
+                settings::item(
+                    "Tailscale Address",
+                    text(ip.clone()),
+                )),
+                row!(settings::item(
+                    "Connection Status",
+                    text(if conn_status { "Tailscale Connected" } else { "Tailscale Disconnected" })
+                )),
+            )
+        ));
+
+        let status_row = Row::with_children(status_elements)
+            .align_items(Alignment::Center)
+            .spacing(0);
+
+        let mut enable_elements: Vec<Element<'_, Message>> = Vec::new();
+        enable_elements.push(Element::from(
+            column!(
+                row!(settings::item(
+                    "Enable SSH",
+                    toggler(None, self.ssh, |value| {
+                        Message::EnableSSH(value)
+                    })
+                )),
+                row!(settings::item(
+                    "Accept Routes",
+                    toggler(None, self.routes, |value| {
+                        Message::AcceptRoutes(value)
+                    })
+                )),
+            )
+            .spacing(5)
+        ));
+
+        let enable_row = Row::with_children(enable_elements);
+
+        let mut taildrop_elements: Vec<Element<'_, Message>> = Vec::new();
+        taildrop_elements.push(Element::from(
+            column!(
+                row!(text("Tail Drop")),
+                row!(
+                    combo_box(&self.device_state, "No Device", Some(&self.selected_device), Message::DeviceSelected),
+                    button::standard("File(s)")
+                        .on_press(Message::ChooseFiles)
+                ),
+                row!(
+                    if self.send_files.len() > 0 {
+                    button::standard("Send File(s)")
+                        .on_press(Message::SendFiles)
+                    } else {
+                        button::standard("Send File(s)")
+                    }
+                )
+            )
+            .spacing(5)
+        ));
+        
+        let taildrop_row = Row::with_children(taildrop_elements);
+
+        let content_list = list_column().padding(5).spacing(0)
+        .add(Element::from(status_row))
+        .add(Element::from(enable_row))
         .add(settings::item(
             "Connected",
             toggler(None, self.connect, |value| {
                 Message::ConnectDisconnect(value)
             }),
         ))
-        .add(settings::item(
-            "Devices",
-            cosmic::widget::combo_box(&self.device_state, "No Selection", Some(&self.selected_device), Message::DeviceSelected)
-                .width(cosmic::iced::Length::Fill)
-        ));
+        .add(Element::from(taildrop_row));
 
         self.core.applet.popup_container(content_list).into()
     }

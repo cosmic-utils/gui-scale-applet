@@ -1,5 +1,5 @@
 use std::{
-    io::{Error, Write}, 
+    io::{Error, Read, Write}, 
     process::{Command, Output, Stdio}
 };
 
@@ -122,6 +122,34 @@ pub fn tailscale_int_up(up_down: bool) -> bool {
     }
 
     ret
+}
+
+pub fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Vec<Option<String>> {
+    let mut status = Vec::<Option<String>>::new();
+
+    for path in file_paths.iter() {
+        let mut this_file_status = String::new();
+        let _ = match path {
+            Some(p) => {
+                let cmd = Command::new("tailscale")
+                .args(["file", "cp", p, target, ":"])
+                .spawn();
+
+                let _ = match cmd.unwrap().stderr {
+                    Some(mut err) => err.read_to_string(&mut this_file_status),
+                    None => {
+                        this_file_status = String::from("The file was successfully sent!");
+                        Ok(0)
+                    },
+                };
+
+                status.push(Some(this_file_status.clone()));
+            }
+            None => status.push(Some(String::from("Something went wrong sending the file..."))),
+        };
+    }
+
+    status
 }
 
 /// Toggle SSH on/off
