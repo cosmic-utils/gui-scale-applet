@@ -1,5 +1,7 @@
 use std::{
-    collections::VecDeque, io::{Error, Read, Write}, process::{Command, Output, Stdio}
+    collections::VecDeque, 
+    io::{Error, Read}, 
+    process::{Command, Output, Stdio},
 };
 
 /// Get the IPv4 address assigned to this computer.
@@ -125,55 +127,89 @@ pub fn tailscale_int_up(up_down: bool) -> bool {
     ret
 }
 
-pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Vec<Option<String>> {
+/// Send files through Tail Drop
+/// It's async so that it can be ran in another thread making it
+/// non-blocking for the UI.
+pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Option<String> {
+    // A Vec<Option<String>> that holds any error messages that may come back.
     let mut status = Vec::<Option<String>>::new();
 
+    // Loop through the file paths
     for path in file_paths.iter() {
-        let mut this_file_status = String::new();
+        // Set a error string variable to be added to the status
+        let mut err_str = String::new();
+
+        // Match on the path so Tail Drop can use it to send the file
         let _ = match path {
+            // If there is path value
             Some(p) => {
+                // Send the file
                 let cmd = Command::new("tailscale")
                 .args(["file", "cp", p, &format!("{target}:")])
                 .spawn();
 
+                // Check for errors from the tailscale command
                 let _ = match cmd.unwrap().stderr {
-                    Some(mut err) => err.read_to_string(&mut this_file_status),
-                    None => {
-                        this_file_status = String::from("The file was successfully sent!");
-                        Ok(0)
-                    },
-                };
-
-                status.push(Some(this_file_status.clone()));
+                    Some(mut err) => {
+                        // Update the err_str variable with the error and continue
+                        // to the next file.
+                        let _ = err.read_to_string(&mut err_str);
+                        continue;
+                    }
+                    // If there's no error, we don't need to do anything.
+                    None => {}
+                };                
             }
-            None => status.push(Some(String::from("Something went wrong sending the file..."))),
+            // If the path was no good, send an error message back to the UI.
+            None => return Some(String::from("Something went wrong sending the file!\nPossible bad file path!")),
         };
+
+        // If there were an error, add it to the status Vec
+        if !err_str.is_empty() { 
+            status.push(Some(err_str));
+        
+        }
     }
 
-    status
+    // If we got any errors, let the user know about them.
+    if !status.is_empty() {
+        return Some("One or more files were not sent successfully!".to_string())
+    }
+
+    None
 }
 
+/// Recieve files through Tail Drop
+/// It's async so that it can be ran in another thread making it
+/// non-blocking for the UI.
 pub async fn tailscale_recieve() -> String {
+    // Get the username of the current user.
     let whoami_cmd = Command::new("whoami")
         .output()
         .unwrap();
 
+    // Set the username to a variable.
     let username = String::from_utf8(whoami_cmd.stdout).unwrap();
 
+    // Create a path to the user's Downloads directory.
     let download_path = &format!("/home/{}/Downloads/", username.trim());
-    println!("Download path: {download_path}");
+
+    // Run the tail drop recieve command, placing the file(s) in the user's Downloads directory.
     let rx_cmd = Command::new("tailscale")
         .args(["file", "get", download_path])
         .output();
 
+    // Check to see if there were any errors during the recieve process.
     let rx_stderr = rx_cmd.unwrap().stderr.clone();
 
+    // Either send a success or error message back to the UI.
     let rx_status = if rx_stderr.is_empty() {
         "Recieved file(s) in Downloads!".to_string()
     } else {
         String::from_utf8(rx_stderr).unwrap()
     };
 
+    // Return the recieve status
     rx_status
 }
 
