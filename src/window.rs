@@ -1,17 +1,15 @@
 use std::path::PathBuf;
 use cosmic::dialog::file_chooser::{self, FileFilter};
-use cosmic::iced::Executor;
-use cosmic::widget::menu::action::MenuAction;
-use tokio::io::AsyncReadExt;
+use cosmic::iced::alignment::Horizontal;
+use cosmic::iced::Length;
 use cosmic::app::Core;
 use cosmic::iced::widget::{
     self, 
     column, 
-    row, 
-    vertical_space, 
+    row,
     horizontal_space,
 };
-use cosmic::iced_widget::{Column, Row};
+use cosmic::iced_widget::Row;
 use cosmic::iced::{
     wayland::popup::{destroy_popup, get_popup},
     window::Id,
@@ -25,7 +23,16 @@ use cosmic::widget::{list_column, settings, text, toggler, combo_box, button};
 use cosmic::{Element, Theme};
 use url::Url;
 use crate::logic::{
-    get_tailscale_con_status, get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status, set_routes, set_ssh, tailscale_int_up, tailscale_recieve, tailscale_send
+    get_tailscale_con_status, 
+    get_tailscale_devices, 
+    get_tailscale_ip, 
+    get_tailscale_routes_status, 
+    get_tailscale_ssh_status, 
+    set_routes, 
+    set_ssh,
+    tailscale_int_up, 
+    tailscale_recieve, 
+    tailscale_send
 };
 
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
@@ -40,7 +47,8 @@ pub struct Window {
     device_state: cosmic::widget::combo_box::State<String>,
     selected_device: String,
     send_files: Vec<Option<String>>,
-    send_file_status: Vec<Option<String>>,
+    send_file_status: Option<String>,
+    files_sent: bool,
     recieve_file_status: String,
 }
 
@@ -48,7 +56,6 @@ pub struct Window {
 pub enum Message {
     TogglePopup,
     PopupClosed(Id),
-    UpdateStatusRow(bool),
     EnableSSH(bool),
     AcceptRoutes(bool),
     ConnectDisconnect(bool),
@@ -56,29 +63,14 @@ pub enum Message {
     ChooseFiles,
     FilesSelected(Vec<Url>),
     SendFiles,
-    FilesSent,
+    FilesSent(Option<String>),
     FileChoosingCancelled,
     RecieveFiles,
-    Other,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Actions {
-    RecieveFiles,
-}
-
-impl MenuAction for Actions {
-    type Message = Message;
-
-    fn message(&self) -> Self::Message {
-        match self {
-            Actions::RecieveFiles => Message::RecieveFiles,
-        }
-    }
+    FilesRecieved(String),
 }
 
 impl cosmic::Application for Window {
-    type Executor = cosmic::SingleThreadExecutor;
+    type Executor = cosmic::executor::multi::Executor;
     type Flags = ();
     type Message = Message;
     const APP_ID: &'static str = ID;
@@ -108,7 +100,8 @@ impl cosmic::Application for Window {
             popup: None,
             selected_device: DEFAULT_DEV.to_string(),
             send_files: Vec::<Option<String>>::new(),
-            send_file_status: Vec::<Option<String>>::new(),
+            send_file_status: None,
+            files_sent: false,
             recieve_file_status: String::new(),
         };
 
@@ -123,6 +116,7 @@ impl cosmic::Application for Window {
         match message {
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
+                    self.recieve_file_status = String::new();
                     destroy_popup(p)
                 } else {
                     let new_id = Id::unique();
@@ -147,7 +141,6 @@ impl cosmic::Application for Window {
                     self.popup = None;
                 }
             }
-            Message::UpdateStatusRow(updated) => {},
             Message::EnableSSH(enabled) => {
                 self.ssh = enabled;
                 set_ssh(self.ssh);
@@ -162,8 +155,10 @@ impl cosmic::Application for Window {
             }
             Message::DeviceSelected(device) => {
                 self.selected_device = device;
-                // Debug Only
-                //println!("selected Device: {}", self.selected_device);
+                
+                if self.files_sent {
+                    self.files_sent = false;
+                }
             }
             Message::ChooseFiles => {
                 return cosmic::command::future(async move {
@@ -198,6 +193,10 @@ impl cosmic::Application for Window {
                         }));
                     }
                 }
+
+                // Set the files sent flag to false.
+                self.files_sent = false;
+
                 // Use the same popup logic as TogglePopup to keep the applet open
                 // after selecting the files.
                 // Note: It won't let you just call Message::TogglePopup here.
@@ -220,15 +219,17 @@ impl cosmic::Application for Window {
             Message::SendFiles => {
                 let files = self.send_files.clone();
                 let dev = self.selected_device.clone();
+
                 return cosmic::command::future(async move {                    
-                    let _tx_status = tailscale_send(files, &dev).await;
-                    Message::FilesSent
+                    let tx_status = tailscale_send(files, &dev).await;
+                    Message::FilesSent(tx_status)
                 });
                 
             }
-            Message::FilesSent => {
+            Message::FilesSent(tx_status) => {
+                self.send_file_status = tx_status;
                 self.send_files.clear();
-                self.selected_device = DEFAULT_DEV.to_string();
+                self.files_sent = true;
             }
             Message::FileChoosingCancelled => {
                 // Use the same popup logic as TogglePopup to keep the applet open
@@ -252,11 +253,13 @@ impl cosmic::Application for Window {
             }
             Message::RecieveFiles => {
                 return cosmic::command::future(async move {
-                    let _rx_status = tailscale_recieve().await;
-                    Message::Other
+                    let rx_status = tailscale_recieve().await;
+                    Message::FilesRecieved(rx_status)
                 });
             }
-            Message::Other => {}
+            Message::FilesRecieved(rx_status) => {
+                self.recieve_file_status = rx_status;
+            }
         }
         Command::none()
     }
@@ -270,11 +273,11 @@ impl cosmic::Application for Window {
     }
 
     fn view_window(&self, _id: Id) -> Element<Self::Message> {
+        // Normal status elements
         let ip = get_tailscale_ip();
         let conn_status = get_tailscale_con_status();
 
         let mut status_elements: Vec<Element<'_, Message>> = Vec::new();
-
         status_elements.push(Element::from(
             column!(
                 row!(
@@ -293,6 +296,7 @@ impl cosmic::Application for Window {
             .align_items(Alignment::Center)
             .spacing(0);
 
+        // Enable/Disable Elements (ssh, routes)
         let mut enable_elements: Vec<Element<'_, Message>> = Vec::new();
         enable_elements.push(Element::from(
             column!(
@@ -314,34 +318,82 @@ impl cosmic::Application for Window {
 
         let enable_row = Row::with_children(enable_elements);
 
+        // File tx/rx elements
         let mut taildrop_elements: Vec<Element<'_, Message>> = Vec::new();
         taildrop_elements.push(Element::from(
             column!(
+                row!().height(10).width(Length::Fill),
                 row!(text("Tail Drop"))
                     .align_items(Alignment::Center),
                 row!(
-                    combo_box(&self.device_state, DEFAULT_DEV, Some(&self.selected_device), Message::DeviceSelected),
-                    horizontal_space(10),
-                    button::standard("File(s)")
+                    combo_box(&self.device_state, DEFAULT_DEV, Some(&self.selected_device), Message::DeviceSelected)
+                        .width(140),
+                    horizontal_space(Length::Fill),
+                    button::standard("Select File(s)")
                         .on_press(Message::ChooseFiles)
+                        .width(140)
+                        .tooltip("Select the file(s) to send.")
                 )
                 .height(30),
                 row!(
                     if self.send_files.len() > 0 {
                     button::standard("Send File(s)")
                         .on_press(Message::SendFiles)
+                        .width(140)
+                        .tooltip("Send the selected file(s).")
                     } else {
                         button::standard("Send File(s)")
+                        .width(140)
+                        .tooltip("Send the selected file(s).")
                     },
+                    horizontal_space(Length::Fill),
                     button::standard("Recieve File(s)")
                         .on_press(Message::RecieveFiles)
+                        .width(140)
+                        .tooltip("Recieve files waiting in the Tail Drop inbox.")
                 )
-                .height(30)
+                .align_items(Alignment::Center)
+                .height(30),
+                row!().height(10).width(Length::Fill),
             )
             .spacing(5)
+            .align_items(Alignment::Center)
         ));
         
         let taildrop_row = Row::with_children(taildrop_elements);
+
+        // File tx/rx status elements
+        let mut taildrop_status_elements: Vec<Element<'_, Message>> = Vec::new();
+        taildrop_status_elements.push(Element::from(
+            column!(
+                row!(
+                    text("Send/Recieve Status")
+                        .width(Length::Fill)
+                        .horizontal_alignment(Horizontal::Center)
+                )
+                .height(30)
+                .align_items(Alignment::Center),
+                row!(
+                    match &self.send_file_status {
+                        Some(tx_status) => text(tx_status.clone()),
+                        None => {
+                            if self.files_sent && self.selected_device != "No Device".to_string() {
+                                text("File(s) were sent successfully!")
+                            } else if self.files_sent && self.selected_device == "No Device".to_string() {
+                                text("Choose a device first,\nthen reselect your file(s)!")
+                            } else {
+                                text("")
+                            }
+                        },
+                    }
+                ),
+                row!(
+                    text(self.recieve_file_status.clone())
+                )
+            )
+        ));
+
+        let tx_rx_status_row = Row::with_children(taildrop_status_elements);
 
         let content_list = list_column().padding(5).spacing(0)
         .add(Element::from(status_row))
@@ -352,7 +404,8 @@ impl cosmic::Application for Window {
                 Message::ConnectDisconnect(value)
             }),
         ))
-        .add(Element::from(taildrop_row));
+        .add(Element::from(taildrop_row))
+        .add(Element::from(tx_rx_status_row));
 
         self.core.applet.popup_container(content_list).into()
     }
