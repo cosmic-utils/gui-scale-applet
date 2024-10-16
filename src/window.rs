@@ -24,6 +24,7 @@ use cosmic::widget::settings::section;
 use cosmic::widget::{button, combo_box, list_column, settings, text, toggler, Widget};
 use cosmic::{Element, Theme};
 use url::Url;
+use crate::config::Config;
 use crate::logic::{
     enable_exit_node, get_avail_exit_nodes, get_is_exit_node, get_tailscale_con_status, get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status, set_exit_node, set_routes, set_ssh, tailscale_int_up, tailscale_recieve, tailscale_send
 };
@@ -34,6 +35,7 @@ const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
 
 pub struct Window {
     core: Core,
+    config: Config,
     popup: Option<Id>,
     ssh: bool,
     routes: bool,
@@ -56,6 +58,7 @@ pub struct Window {
 pub enum Message {
     TogglePopup,
     PopupClosed(Id),
+    DelayedInit(String), // String param is to set the exit node hostname
     EnableSSH(bool),
     AcceptRoutes(bool),
     ConnectDisconnect(bool),
@@ -90,7 +93,7 @@ impl cosmic::Application for Window {
     fn init(
         core: Core,
         _flags: Self::Flags,
-    ) -> (Self, Command<cosmic::app::Message<Self::Message>>) {
+    ) -> (Window, Command<cosmic::app::Message<Message>>) {
         let ssh = get_tailscale_ssh_status();
         let routes = get_tailscale_routes_status();
         let connect = get_tailscale_con_status();
@@ -113,6 +116,7 @@ impl cosmic::Application for Window {
 
         let window = Window {
             core,
+            config: Config::new(),
             ssh,
             routes,
             connect,
@@ -131,7 +135,13 @@ impl cosmic::Application for Window {
             is_exit_node,
         };
 
-        (window, Command::none())
+        let exit_node = window.config.exit_node.as_ref().clone();
+
+        (
+            window,
+            cosmic::command::message(Message::DelayedInit(exit_node))
+        )
+        
     }
 
     fn on_close_requested(&self, id: window::Id) -> Option<Message> {
@@ -166,6 +176,9 @@ impl cosmic::Application for Window {
                 if self.popup.as_ref() == Some(&id) {
                     self.popup = None;
                 }
+            }
+            Message::DelayedInit(exit_node) => {
+                Message::ExitNodeSelected(exit_node);
             }
             Message::EnableSSH(enabled) => {
                 self.ssh = enabled;
@@ -297,6 +310,11 @@ impl cosmic::Application for Window {
 
                     // Use that exit node
                     set_exit_node(self.sel_exit_node.clone());
+                    
+                    // Set the config to the exit node
+                    self.config.set("exit-node")
+                    self.config.set_active_exit_node(Box::<String>::new(self.sel_exit_node.clone()));
+                    
                 }
             }
             Message::AllowExitNodeLanAccess(allow_lan_access) => self.allow_lan = allow_lan_access,

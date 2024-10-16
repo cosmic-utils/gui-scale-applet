@@ -8,6 +8,7 @@ rust-embed = "8.0.0"
 tokio = "1.31"
 serde = "1.0.210"
 url = "2.4.0"
+tracing = "0.1.40"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic.git"
