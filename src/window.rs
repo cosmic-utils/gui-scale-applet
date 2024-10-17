@@ -22,7 +22,7 @@ use cosmic::iced_runtime::core::window;
 use cosmic::iced_style::application;
 use cosmic::widget::settings::section;
 use cosmic::widget::{button, combo_box, list_column, settings, text, toggler, Widget};
-use cosmic::{Element, Theme};
+use cosmic::{cosmic_config::{self, CosmicConfigEntry}, Element, Theme};
 use url::Url;
 use crate::config::Config;
 use crate::logic::{
@@ -35,7 +35,8 @@ const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
 
 pub struct Window {
     core: Core,
-    config: Config,
+    config: cosmic_config::Config,
+    config_entry: Config,
     popup: Option<Id>,
     ssh: bool,
     routes: bool,
@@ -94,6 +95,7 @@ impl cosmic::Application for Window {
         core: Core,
         _flags: Self::Flags,
     ) -> (Window, Command<cosmic::app::Message<Message>>) {
+        let mut config_entry = Config::new();
         let ssh = get_tailscale_ssh_status();
         let routes = get_tailscale_routes_status();
         let connect = get_tailscale_con_status();
@@ -116,7 +118,8 @@ impl cosmic::Application for Window {
 
         let window = Window {
             core,
-            config: Config::new(),
+            config: cosmic_config::Config::new(config_entry.name),
+            config_entry: Config::new(),
             ssh,
             routes,
             connect,
@@ -135,7 +138,7 @@ impl cosmic::Application for Window {
             is_exit_node,
         };
 
-        let exit_node = window.config.exit_node.as_ref().clone();
+        let exit_node = window.config_entry.exit_node.clone();
 
         (
             window,
@@ -311,9 +314,9 @@ impl cosmic::Application for Window {
                     // Use that exit node
                     set_exit_node(self.sel_exit_node.clone());
                     
-                    // Set the config to the exit node
-                    self.config.set("exit-node")
-                    self.config.set_active_exit_node(Box::<String>::new(self.sel_exit_node.clone()));
+                    // Set the config_entry to the exit node
+                    self.config_entry.set_active_exit_node(self.sel_exit_node.clone());
+                    self.config_entry.write_entry();
                     
                 }
             }
@@ -487,7 +490,7 @@ impl cosmic::Application for Window {
 
         // To-Do
         /*
-            Create a config to hold the last known exit node and restore it on restart.
+            Create a config_entry to hold the last known exit node and restore it on restart.
             Create the AllowLanAccess functionality and UI element
             Create the UpdateSugExitNode functionality and UI Element
         */
