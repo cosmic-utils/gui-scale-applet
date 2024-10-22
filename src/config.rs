@@ -14,7 +14,7 @@ pub struct Config {
 impl ConfigSet for Config {
     fn set<T: serde::Serialize>(&self, key: &str, value: T) -> Result<(), cosmic_config::Error> {
         match key {
-            "exit-node" => serde::Serialize::
+            "exit-node" => serde::Serialize::cd
         }
     }
 }
