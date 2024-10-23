@@ -2026,6 +2026,7 @@ name = "gui-scale-applet"
 version = "1.0.0"
 dependencies = [
  "libcosmic",
+ "ron",
  "rust-embed",
  "serde",
  "tokio",

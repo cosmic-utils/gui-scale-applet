@@ -352,13 +352,6 @@ pub fn get_avail_exit_nodes() -> Vec<String> {
     exit_node_host_list
 }
 
-
-/// Selected exit node
-/// Used for UI to know if one is already set at startup
-pub fn get_selected_exit_node() -> String {
-    todo!()
-}
-
 /// Set selected exit node as the exit node through Tailscale CLI
 pub fn set_exit_node(exit_node: String) -> bool {
     let _exit_node_set_cmd = Command::new("tailscale")

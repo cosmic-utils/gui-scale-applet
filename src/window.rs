@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::path::PathBuf;
+use cosmic::cosmic_config::{Config, ConfigGet, ConfigState, Error};
 use cosmic::dialog::file_chooser::{self, FileFilter};
 use cosmic::iced::alignment::Horizontal;
 use cosmic::iced::Length;
@@ -12,19 +13,18 @@ use cosmic::iced::widget::{
 };
 use cosmic::iced_widget::{Row, Toggler};
 use cosmic::iced::{
-    wayland::popup::{destroy_popup, get_popup},
+    platform_specific::shell::commands::popup::{destroy_popup, get_popup},
     window::Id,
-    Command, 
+    Task, 
     Limits,
     Alignment,
 };
 use cosmic::iced_runtime::core::window;
-use cosmic::iced_style::application;
 use cosmic::widget::settings::section;
-use cosmic::widget::{button, combo_box, list_column, settings, text, toggler, Widget};
+use cosmic::widget::{button, dropdown, list_column, settings, text, toggler, Widget};
 use cosmic::{cosmic_config::{self, CosmicConfigEntry}, Element, Theme};
 use url::Url;
-use crate::config::Config;
+use crate::config::{load_exit_node, update_config};
 use crate::logic::{
     enable_exit_node, get_avail_exit_nodes, get_is_exit_node, get_tailscale_con_status, get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status, set_exit_node, set_routes, set_ssh, tailscale_int_up, tailscale_recieve, tailscale_send
 };
@@ -35,21 +35,22 @@ const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
 
 pub struct Window {
     core: Core,
-    config: cosmic_config::Config,
-    config_entry: Config,
+    config: Config,
     popup: Option<Id>,
     ssh: bool,
     routes: bool,
     connect: bool,
-    device_state: cosmic::widget::combo_box::State<String>,
+    device_options: Vec<String>,
     selected_device: String,
+    selected_device_idx: Option<usize>,
     send_files: Vec<Option<String>>,
     send_file_status: Option<String>,
     files_sent: bool,
     recieve_file_status: String,
-    avail_exit_nodes: cosmic::widget::combo_box::State<String>,
+    avail_exit_nodes: Vec<String>,
     avail_exit_node_desc: bool,
     sel_exit_node: String,
+    sel_exit_node_idx: Option<usize>,
     sug_exit_node: String,
     allow_lan: bool,
     is_exit_node: bool,
@@ -59,11 +60,10 @@ pub struct Window {
 pub enum Message {
     TogglePopup,
     PopupClosed(Id),
-    DelayedInit(String), // String param is to set the exit node hostname
     EnableSSH(bool),
     AcceptRoutes(bool),
     ConnectDisconnect(bool),
-    DeviceSelected(String),
+    DeviceSelected(usize),
     ChooseFiles,
     FilesSelected(Vec<Url>),
     SendFiles,
@@ -71,7 +71,7 @@ pub enum Message {
     FileChoosingCancelled,
     RecieveFiles,
     FilesRecieved(String),
-    ExitNodeSelected(String),
+    ExitNodeSelected(usize),
     UpdateSugExitNode(String),
     AllowExitNodeLanAccess(bool),
     UpdateIsExitNode(bool),
@@ -94,8 +94,7 @@ impl cosmic::Application for Window {
     fn init(
         core: Core,
         _flags: Self::Flags,
-    ) -> (Window, Command<cosmic::app::Message<Message>>) {
-        let mut config_entry = Config::new();
+    ) -> (Window, Task<cosmic::app::Message<Message>>) {
         let ssh = get_tailscale_ssh_status();
         let routes = get_tailscale_routes_status();
         let connect = get_tailscale_con_status();
@@ -116,33 +115,39 @@ impl cosmic::Application for Window {
             true
         };
 
-        let window = Window {
+        let mut window = Window {
             core,
-            config: cosmic_config::Config::new(config_entry.name),
-            config_entry: Config::new(),
+            config: match Config::new("com.github.bhh32.GUIScaleApplet", 1) {
+                Ok(new_config) => new_config,
+                Err(_) => {
+                    Config::system("com.github.bhh32.GUIScaleApplet", 1).unwrap()
+                }
+            },
             ssh,
             routes,
             connect,
-            device_state: widget::combo_box::State::new(dev_init),
+            device_options: dev_init,
             popup: None,
-            selected_device: DEFAULT_DEV.to_string(),
+            selected_device: DEFAULT_EXIT_NODE.to_string(),
+            selected_device_idx: None,
             send_files: Vec::<Option<String>>::new(),
             send_file_status: None,
             files_sent: false,
             recieve_file_status: String::new(),
-            avail_exit_nodes: widget::combo_box::State::new(exit_nodes_init),
+            avail_exit_nodes: exit_nodes_init,
             avail_exit_node_desc,
             sel_exit_node: DEFAULT_EXIT_NODE.to_string(),
+            sel_exit_node_idx: None,
             sug_exit_node: String::new(),
             allow_lan,
             is_exit_node,
         };
 
-        let exit_node = window.config_entry.exit_node.clone();
+        window.sel_exit_node_idx = Some(load_exit_node("exit-node"));
 
         (
             window,
-            cosmic::command::message(Message::DelayedInit(exit_node))
+            Task::none()
         )
         
     }
@@ -151,7 +156,7 @@ impl cosmic::Application for Window {
         Some(Message::PopupClosed(id))
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<cosmic::app::Message<Self::Message>> {
+    fn update(&mut self, message: Self::Message) -> Task<cosmic::app::Message<Self::Message>> {
         match message {
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
@@ -164,7 +169,12 @@ impl cosmic::Application for Window {
                     let mut popup_settings =
                         self.core
                             .applet
-                            .get_popup_settings(Id::MAIN, new_id, None, None, None);
+                            .get_popup_settings(self.core.main_window_id().unwrap(),
+                                new_id, 
+                                None, 
+                                None, 
+                                None
+                            );
 
                     popup_settings.positioner.size_limits = Limits::NONE
                             .max_width(372.0)
@@ -180,9 +190,6 @@ impl cosmic::Application for Window {
                     self.popup = None;
                 }
             }
-            Message::DelayedInit(exit_node) => {
-                Message::ExitNodeSelected(exit_node);
-            }
             Message::EnableSSH(enabled) => {
                 self.ssh = enabled;
                 set_ssh(self.ssh);
@@ -196,7 +203,7 @@ impl cosmic::Application for Window {
                 tailscale_int_up(self.connect);
             }
             Message::DeviceSelected(device) => {
-                self.selected_device = device;
+                self.selected_device = self.device_options[device].clone();
                 
                 if self.files_sent {
                     self.files_sent = false;
@@ -248,7 +255,12 @@ impl cosmic::Application for Window {
                 let mut popup_settings =
                     self.core
                         .applet
-                        .get_popup_settings(Id::MAIN, new_id, None, None, None);
+                        .get_popup_settings(self.core.main_window_id().unwrap(), 
+                        new_id,
+                        None, 
+                        None, 
+                        None
+                    );
 
                 popup_settings.positioner.size_limits = Limits::NONE
                         .max_width(372.0)
@@ -283,7 +295,12 @@ impl cosmic::Application for Window {
                 let mut popup_settings =
                     self.core
                         .applet
-                        .get_popup_settings(Id::MAIN, new_id, None, None, None);
+                        .get_popup_settings(self.core.main_window_id().unwrap(), 
+                        new_id, 
+                        None, 
+                        None, 
+                        None
+                    );
 
                 popup_settings.positioner.size_limits = Limits::NONE
                         .max_width(372.0)
@@ -305,18 +322,25 @@ impl cosmic::Application for Window {
             Message::ExitNodeSelected(exit_node) => {
                 if !self.is_exit_node {
                     // Set the model's selected exit node
-                    if exit_node == "None".to_string() {
-                        self.sel_exit_node = String::new();
-                    } else {
-                        self.sel_exit_node = exit_node;
-                    }
+                    self.sel_exit_node = self.avail_exit_nodes[exit_node].clone();
+                    self.sel_exit_node_idx = Some(exit_node);
+                    
 
                     // Use that exit node
-                    set_exit_node(self.sel_exit_node.clone());
+                    if exit_node == 0 {
+                        set_exit_node(String::new());
+                    } else {
+                        set_exit_node(self.sel_exit_node.clone());
+                    }
                     
                     // Set the config_entry to the exit node
-                    self.config_entry.set_active_exit_node(self.sel_exit_node.clone());
-                    self.config_entry.write_entry();
+                    update_config(self.config.clone(), "exit-node", match self.sel_exit_node_idx {
+                        Some(idx) => idx,
+                        None => {
+                            eprintln!("Could not update the config file!");
+                            0
+                        }
+                    });
                     
                 }
             }
@@ -333,18 +357,18 @@ impl cosmic::Application for Window {
 
                     // If we enabled it remove the ability to set an external exit node
                     if self.is_exit_node {
-                        self.avail_exit_nodes = cosmic::widget::combo_box::State::new(vec![String::from("Can't select an exit node\nwhile host is an exit node!")]);
+                        self.avail_exit_nodes = get_avail_exit_nodes();
                         self.avail_exit_node_desc = false;
 
                     // If we disabled it, give the ability to set an external exit node
                     } else {
-                        self.avail_exit_nodes = cosmic::widget::combo_box::State::new(get_avail_exit_nodes());
+                        self.avail_exit_nodes = get_avail_exit_nodes();
                         self.avail_exit_node_desc = true;
                     }
                 }               
             },
         }
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<Self::Message> {
@@ -376,7 +400,7 @@ impl cosmic::Application for Window {
         ));
 
         let status_row = Row::with_children(status_elements)
-            .align_items(Alignment::Center)
+            .align_y(Alignment::Center)
             .spacing(0);
 
         // Enable/Disable Elements (ssh, routes)
@@ -385,15 +409,13 @@ impl cosmic::Application for Window {
             column!(
                 row!(settings::item(
                     "Enable SSH",
-                    toggler(None, self.ssh, |value| {
-                        Message::EnableSSH(value)
-                    })
+                    toggler(self.ssh)
+                        .on_toggle(Message::EnableSSH)
                 )),
                 row!(settings::item(
                     "Accept Routes",
-                    toggler(None, self.routes, |value| {
-                        Message::AcceptRoutes(value)
-                    })
+                    toggler(self.routes)
+                        .on_toggle(Message::AcceptRoutes)
                 )),
             )
             .spacing(5)
@@ -410,13 +432,13 @@ impl cosmic::Application for Window {
                 )
                 .add(
                     row!(text("Tail Drop"))
-                        .align_items(Alignment::Center),
+                        .align_y(Alignment::Center),
                 )
                 .add(
                     row!(
-                        combo_box(&self.device_state, DEFAULT_DEV, Some(&self.selected_device), Message::DeviceSelected)
+                        dropdown(&self.device_options, self.selected_device_idx, Message::DeviceSelected)
                             .width(140),
-                        horizontal_space(Length::Fill),
+                        horizontal_space().width(Length::Fill),
                         button::standard("Select File(s)")
                             .on_press(Message::ChooseFiles)
                             .width(140)
@@ -435,13 +457,13 @@ impl cosmic::Application for Window {
                             .width(140)
                             .tooltip("Send the selected file(s).")
                         },
-                        horizontal_space(Length::Fill),
+                        horizontal_space().width(Length::Fill),
                         button::standard("Recieve File(s)")
                             .on_press(Message::RecieveFiles)
                             .width(140)
                             .tooltip("Recieve files waiting in the Tail Drop inbox.")
                     )
-                    .align_items(Alignment::Center)
+                    .align_y(Alignment::Center)
                     .height(30),
                 )
                 .add(
@@ -460,10 +482,10 @@ impl cosmic::Application for Window {
                 row!(
                     text("Send/Recieve Status")
                         .width(Length::Fill)
-                        .horizontal_alignment(Horizontal::Center)
+                        .align_x(Horizontal::Center)
                 )
                 .height(30)
-                .align_items(Alignment::Center),
+                .align_y(Alignment::Center),
                 row!(
                     match &self.send_file_status {
                         Some(tx_status) => text(tx_status.clone()),
@@ -502,11 +524,12 @@ impl cosmic::Application for Window {
                     // Section title
                     text("Exit Node")
                     .width(Length::Fill)
-                    .horizontal_alignment(Horizontal::Center)
+                    .align_x(Horizontal::Center)
                 ),
                 row!(
                     // Exit node selection combo box
-                    combo_box(&self.avail_exit_nodes, DEFAULT_EXIT_NODE, Some(&self.sel_exit_node), Message::ExitNodeSelected)
+                    dropdown(&self.avail_exit_nodes, self.sel_exit_node_idx, Message::ExitNodeSelected)
+                        .width(200)
                 ),
                 row!(
                     // Have to use a button because a toggler cannot be disabled currently.
@@ -525,7 +548,7 @@ impl cosmic::Application for Window {
                 )
             )
             .spacing(10)
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
         ));
 
         let exit_node_row = Row::with_children(exit_node_elements);
@@ -535,18 +558,14 @@ impl cosmic::Application for Window {
         .add(Element::from(enable_row))
         .add(settings::item(
             "Connected",
-            toggler(None, self.connect, |value| {
-                Message::ConnectDisconnect(value)
-            }),
-        ))
+            toggler(self.connect)
+                .on_toggle(Message::ConnectDisconnect),
+            ),
+        )
         .add(Element::from(taildrop_row))
         .add(Element::from(tx_rx_status_row))
         .add(Element::from(exit_node_row));
 
         self.core.applet.popup_container(content_list).into()
-    }
-
-    fn style(&self) -> Option<<Theme as application::StyleSheet>::Style> {
-        Some(cosmic::applet::style())
     }
 }
