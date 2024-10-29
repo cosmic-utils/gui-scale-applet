@@ -26,12 +26,16 @@ use cosmic::{cosmic_config::{self, CosmicConfigEntry}, Element, Theme};
 use url::Url;
 use crate::config::{load_exit_node, update_config};
 use crate::logic::{
-    enable_exit_node, get_avail_exit_nodes, get_is_exit_node, get_tailscale_con_status, get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status, set_exit_node, set_routes, set_ssh, tailscale_int_up, tailscale_recieve, tailscale_send
+    clear_status, enable_exit_node, get_avail_exit_nodes, get_is_exit_node, get_tailscale_con_status, get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status, set_exit_node, set_routes, set_ssh, tailscale_int_up, tailscale_recieve, tailscale_send
 };
 
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
-const DEFAULT_DEV: &str = "No Device";
 const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
+const POPUP_MAX_WIDTH: f32 = 360.0;
+const POPUP_MIN_WIDTH: f32 = 300.0;
+const POPUP_MAX_HEIGHT: f32 = 1080.0;
+const POPUP_MIN_HEIGHT: f32 = 200.0;
+const STATUS_CLEAR_TIME: u64 = 5;
 
 pub struct Window {
     core: Core,
@@ -44,7 +48,7 @@ pub struct Window {
     selected_device: String,
     selected_device_idx: Option<usize>,
     send_files: Vec<Option<String>>,
-    send_file_status: Option<String>,
+    send_file_status: String,
     files_sent: bool,
     recieve_file_status: String,
     avail_exit_nodes: Vec<String>,
@@ -67,7 +71,7 @@ pub enum Message {
     ChooseFiles,
     FilesSelected(Vec<Url>),
     SendFiles,
-    FilesSent(Option<String>),
+    FilesSent(String),
     FileChoosingCancelled,
     RecieveFiles,
     FilesRecieved(String),
@@ -75,6 +79,7 @@ pub enum Message {
     UpdateSugExitNode(String),
     AllowExitNodeLanAccess(bool),
     UpdateIsExitNode(bool),
+    ClearTailDropStatusMessage
 }
 
 impl cosmic::Application for Window {
@@ -129,9 +134,9 @@ impl cosmic::Application for Window {
             device_options: dev_init,
             popup: None,
             selected_device: DEFAULT_EXIT_NODE.to_string(),
-            selected_device_idx: None,
+            selected_device_idx: Some(0),
             send_files: Vec::<Option<String>>::new(),
-            send_file_status: None,
+            send_file_status: String::new(),
             files_sent: false,
             recieve_file_status: String::new(),
             avail_exit_nodes: exit_nodes_init,
@@ -177,10 +182,10 @@ impl cosmic::Application for Window {
                             );
 
                     popup_settings.positioner.size_limits = Limits::NONE
-                            .max_width(372.0)
-                            .min_width(300.0)
-                            .min_height(200.0)
-                            .max_height(1080.0);
+                            .max_width(POPUP_MAX_WIDTH)
+                            .min_width(POPUP_MIN_WIDTH)
+                            .min_height(POPUP_MIN_HEIGHT)
+                            .max_height(POPUP_MAX_HEIGHT);
                     
                     get_popup(popup_settings)
                 }
@@ -204,6 +209,7 @@ impl cosmic::Application for Window {
             }
             Message::DeviceSelected(device) => {
                 self.selected_device = self.device_options[device].clone();
+                self.selected_device_idx = Some(device);
                 
                 if self.files_sent {
                     self.files_sent = false;
@@ -263,27 +269,47 @@ impl cosmic::Application for Window {
                     );
 
                 popup_settings.positioner.size_limits = Limits::NONE
-                        .max_width(372.0)
-                        .min_width(300.0)
-                        .min_height(200.0)
-                        .max_height(1080.0);
+                        .max_width(POPUP_MAX_WIDTH)
+                        .min_width(POPUP_MIN_WIDTH)
+                        .min_height(POPUP_MIN_HEIGHT)
+                        .max_height(POPUP_MAX_HEIGHT);
                     
                 return get_popup(popup_settings);
             }
             Message::SendFiles => {
+                // Get the file(s) that are being sent
                 let files = self.send_files.clone();
+                // Get the device name that the files are being sent to
                 let dev = self.selected_device.clone();
 
-                return cosmic::command::future(async move {                    
-                    let tx_status = tailscale_send(files, &dev).await;
-                    Message::FilesSent(tx_status)
-                });
-                
+                // Make sure that the device is not the Select choice
+                if dev != "Select" {
+                    self.files_sent = true;
+                    // Use the async command to use a new thread
+                    return cosmic::command::future(async move {
+                        // Send the file(s) and return the transfer status when the transfer is complete            
+                        let tx_status = match tailscale_send(files, &dev).await {
+                            Some(val) => val,
+                            None => String::new(),
+                        };// **ISSUE IS HERE **
+                        // When the file(s) are done being sent, send the FilesSent message to the update function
+                        Message::FilesSent(tx_status)
+                    });
+                }
             }
             Message::FilesSent(tx_status) => {
+                println!("tx_status: {tx_status}");
+                // Once the files are sent:
+                // 1. Set the send file status to the transfer status
                 self.send_file_status = tx_status;
+                // 2. Clear the selected files that were just sent from the vector
                 self.send_files.clear();
-                self.files_sent = true;
+
+                if !self.send_file_status.is_empty() {
+                    return cosmic::command::future(async move {
+                        Message::ClearTailDropStatusMessage
+                    });
+                }
             }
             Message::FileChoosingCancelled => {
                 // Use the same popup logic as TogglePopup to keep the applet open
@@ -303,10 +329,10 @@ impl cosmic::Application for Window {
                     );
 
                 popup_settings.positioner.size_limits = Limits::NONE
-                        .max_width(372.0)
-                        .min_width(300.0)
-                        .min_height(200.0)
-                        .max_height(1080.0);
+                        .max_width(POPUP_MAX_WIDTH)
+                        .min_width(POPUP_MIN_WIDTH)
+                        .min_height(POPUP_MIN_HEIGHT)
+                        .max_height(POPUP_MAX_HEIGHT);
                     
                 return get_popup(popup_settings);
             }
@@ -318,6 +344,12 @@ impl cosmic::Application for Window {
             }
             Message::FilesRecieved(rx_status) => {
                 self.recieve_file_status = rx_status;
+
+                if !self.recieve_file_status.is_empty() {
+                    return cosmic::command::future(async move {
+                        Message::ClearTailDropStatusMessage
+                    })
+                }                
             }
             Message::ExitNodeSelected(exit_node) => {
                 if !self.is_exit_node {
@@ -348,25 +380,40 @@ impl cosmic::Application for Window {
             Message::UpdateSugExitNode(sug_exit_node) => self.sug_exit_node = sug_exit_node,
             Message::UpdateIsExitNode(is_exit_node) => {
                 // Ensure we're not using some other exit node
-                if self.sel_exit_node == String::new() {
+                if self.sel_exit_node_idx == Some(0) {
                     // Set the model is_exit_node to the message is_exit_node
                     self.is_exit_node = is_exit_node;
 
                     // Enable/disable this host as an exit node
                     enable_exit_node(self.is_exit_node);
-
-                    // If we enabled it remove the ability to set an external exit node
-                    if self.is_exit_node {
-                        self.avail_exit_nodes = get_avail_exit_nodes();
-                        self.avail_exit_node_desc = false;
-
-                    // If we disabled it, give the ability to set an external exit node
-                    } else {
-                        self.avail_exit_nodes = get_avail_exit_nodes();
-                        self.avail_exit_node_desc = true;
-                    }
+                    
+                    self.avail_exit_nodes = get_avail_exit_nodes();
                 }               
-            },
+            }
+            Message::ClearTailDropStatusMessage => {
+                // Clear the files recieved status in the status clear time
+                if !self.recieve_file_status.is_empty() {
+                    return cosmic::command::future(async move {
+                        Message::FilesRecieved(match clear_status(STATUS_CLEAR_TIME).await {
+                            Some(bad_value) => format!("Something went wrong and clear status returned a value: {bad_value}"),
+                            None => String::new(),
+                        })
+                    });
+                } else if self.files_sent {
+                    println!("Entered clear tail drop status message send");
+                    // 4. Reset the selected_device_idx back to 0 (Selected)
+                    self.selected_device_idx = Some(0);
+                    // 5. Reset the selected_device back to Selected
+                    self.selected_device = self.device_options[0].clone();
+
+                    return cosmic::command::future(async move {
+                        Message::FilesSent(match clear_status(STATUS_CLEAR_TIME).await {
+                            Some(bad_value) => format!("Something went wrong and clear status returned a value: {bad_value}"),
+                            None => String::new(),
+                        })
+                    });
+                }
+            }
         }
         Task::none()
     }
@@ -428,9 +475,6 @@ impl cosmic::Application for Window {
         taildrop_elements.push(Element::from(
             section()
                 .add(
-                    row!().height(10).width(Length::Fill)
-                )
-                .add(
                     row!(text("Tail Drop"))
                         .align_y(Alignment::Center),
                 )
@@ -438,7 +482,7 @@ impl cosmic::Application for Window {
                     row!(
                         dropdown(&self.device_options, self.selected_device_idx, Message::DeviceSelected)
                             .width(140),
-                        horizontal_space().width(Length::Fill),
+                        horizontal_space().width(5),
                         button::standard("Select File(s)")
                             .on_press(Message::ChooseFiles)
                             .width(140)
@@ -457,7 +501,7 @@ impl cosmic::Application for Window {
                             .width(140)
                             .tooltip("Send the selected file(s).")
                         },
-                        horizontal_space().width(Length::Fill),
+                        horizontal_space().width(5),
                         button::standard("Recieve File(s)")
                             .on_press(Message::RecieveFiles)
                             .width(140)
@@ -465,16 +509,11 @@ impl cosmic::Application for Window {
                     )
                     .align_y(Alignment::Center)
                     .height(30),
-                )
-                .add(
-                    row!().height(10).width(Length::Fill),
-                )
-                
+                )                
             )            
         );
         
         let taildrop_row = Row::with_children(taildrop_elements);
-
         // File tx/rx status elements
         let mut taildrop_status_elements: Vec<Element<'_, Message>> = Vec::new();
         taildrop_status_elements.push(Element::from(
@@ -487,17 +526,16 @@ impl cosmic::Application for Window {
                 .height(30)
                 .align_y(Alignment::Center),
                 row!(
-                    match &self.send_file_status {
-                        Some(tx_status) => text(tx_status.clone()),
-                        None => {
-                            if self.files_sent && self.selected_device != "No Device".to_string() {
-                                text("File(s) were sent successfully!")
-                            } else if self.files_sent && self.selected_device == "No Device".to_string() {
-                                text("Choose a device first,\nthen reselect your file(s)!")
-                            } else {
-                                text("")
-                            }
-                        },
+                    if !self.send_file_status.is_empty() {
+                        text(self.send_file_status.clone())
+                    } else {
+                        if self.files_sent && self.selected_device != "Select".to_string() {
+                            text("File(s) were sent successfully!")
+                        } else if self.selected_device == "Select".to_string() {
+                            text("Choose a device first,\nthen reselect your file(s)!")
+                        } else {
+                            text("")
+                        }
                     }
                 ),
                 row!(
@@ -512,39 +550,71 @@ impl cosmic::Application for Window {
 
         // To-Do
         /*
-            Create a config_entry to hold the last known exit node and restore it on restart.
-            Create the AllowLanAccess functionality and UI element
+            Create the AllowLanAccess functionality
             Create the UpdateSugExitNode functionality and UI Element
         */
+
+        // Using the config file to see if there is an external exit node set
+        let config_exit_node: usize = load_exit_node("exit-node");
+        
+        // Create element Vector for the exit node elements
         let mut exit_node_elements: Vec<Element<'_, Message>> = Vec::new();
+
+        let host_exit_node_col = column!(
+            Element::from(if config_exit_node == 0 {
+                if !self.is_exit_node {
+                    toggler(self.is_exit_node)
+                        .label("Enable Host Exit Node")
+                        .on_toggle(Message::UpdateIsExitNode)
+                } else {
+                    toggler(self.is_exit_node)
+                        .label("Disable Host Exit Node")
+                        .on_toggle(Message::UpdateIsExitNode)
+                }
+            } else {
+                toggler(self.is_exit_node)
+                    .label("Enable Host Exit Node")
+            }),
+            Element::from(if self.is_exit_node {
+                toggler(self.allow_lan)
+                    .label("Allow LAN Access")
+                    .on_toggle(Message::AllowExitNodeLanAccess)
+            } else {
+                toggler(self.allow_lan)
+                    .label("Allow LAN Access")
+            })
+        )
+        .spacing(5)
+        .align_x(Alignment::Start);
         
         exit_node_elements.push(Element::from(
             column!(
                 row!(
                     // Section title
                     text("Exit Node")
-                    .width(Length::Fill)
-                    .align_x(Horizontal::Center)
+                        .width(Length::Fill)
+                        .align_x(Horizontal::Center)
                 ),
                 row!(
-                    // Exit node selection combo box
-                    dropdown(&self.avail_exit_nodes, self.sel_exit_node_idx, Message::ExitNodeSelected)
-                        .width(200)
-                ),
-                row!(
-                    // Have to use a button because a toggler cannot be disabled currently.
-                    // Update to a toggler when they can be disabled.                    
-                    if self.avail_exit_node_desc {
-                        button::suggested("Set host as exit node!")
-                            .on_press(Message::UpdateIsExitNode(!self.is_exit_node))
-                            .width(200)
-                            .height(25)
-                    } else {
-                        button::suggested("Unset host as exit node!")
-                            .on_press(Message::UpdateIsExitNode(!self.is_exit_node))
-                            .width(210)
-                            .height(25)
-                    }
+                    column!(
+                        // Exit node selection dropdown
+                        column!(
+                            text("Selected Node")
+                                .align_x(Alignment::Start)
+                                .align_y(Alignment::Center),
+                            dropdown(&self.avail_exit_nodes, self.sel_exit_node_idx, Message::ExitNodeSelected)
+                                .width(125)
+                                
+                        ).align_x(Alignment::Center)
+                    )
+                    .padding(15)
+                    .align_x(Alignment::Center),
+                    column!(
+                        // Use the config exit node setting to enable/disable the host
+                        // exit node toggler.
+                        host_exit_node_col
+                    )
+                    .padding(15)
                 )
             )
             .spacing(10)

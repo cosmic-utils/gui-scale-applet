@@ -1,7 +1,5 @@
 use std::{
-    collections::VecDeque, 
-    io::{Error, Read}, 
-    process::{Command, Output, Stdio},
+    collections::VecDeque, io::{Error, Read}, process::{Command, Output, Stdio}, thread, time::Duration
 };
 
 /// Get the IPv4 address assigned to this computer.
@@ -49,10 +47,12 @@ pub fn get_tailscale_devices() -> Vec<String> {
     };
 
     let mut status_output: VecDeque<String> = out.lines().map(|line| {
+        println!("{line}");
         line.split_whitespace().skip(1).next().expect("Device name not found").to_string()
     }).collect();
 
     status_output.pop_front();
+    status_output.push_front("Select".to_string());
 
     status_output.to_owned().into()
 }
@@ -109,7 +109,7 @@ pub fn _get_available_devices() -> String {
     String::from_utf8(cmd.unwrap().stdout).unwrap()
 }
 
-/// Set the Tailscale connectio up/down
+/// Set the Tailscale connection up/down
 pub fn tailscale_int_up(up_down: bool) -> bool {
     let mut ret = false;
     if up_down {
@@ -213,6 +213,12 @@ pub async fn tailscale_recieve() -> String {
     rx_status
 }
 
+pub async fn clear_status(wait_time: u64) -> Option<String> {
+    thread::sleep(Duration::from_secs(wait_time));
+
+    None
+}
+
 /// Toggle SSH on/off
 pub fn set_ssh(ssh: bool) -> bool {
     let cmd: Result<Output, Error>;
@@ -230,7 +236,7 @@ pub fn set_ssh(ssh: bool) -> bool {
     match cmd {
         Ok(_) => true,
         Err(e) => {
-            println!("Error occurred: {e}");
+            eprintln!("Error occurred: {e}");
             false
         }
     }
@@ -253,7 +259,7 @@ pub fn set_routes(accept_routes: bool) -> bool {
     match cmd {
         Ok(_) => true,
         Err(e) => {
-            println!("Error occurred: {e}");
+            eprintln!("Error occurred: {e}");
             false
         }
     }

@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use cosmic::cosmic_config::{Config, ConfigGet, ConfigSet, CosmicConfigEntry, Error};
+use cosmic::cosmic_config::{Config, ConfigGet, ConfigSet};
 use serde::{de::DeserializeOwned, Serialize};
 
 pub fn update_config<T>(config: Config, key: &str, value: T) where T: Serialize + Display + Clone {
