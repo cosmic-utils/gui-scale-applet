@@ -1,8 +1,8 @@
 use std::{
-    collections::VecDeque, 
-    io::{Error, Read}, 
-    process::{Command, Output, Stdio},
+    collections::VecDeque, io::{Error, Read}, process::{Command, Output, Stdio}, thread, time::Duration
 };
+
+use regex::RegexBuilder;
 
 /// Get the IPv4 address assigned to this computer.
 pub fn get_tailscale_ip() -> String {
@@ -47,13 +47,28 @@ pub fn get_tailscale_devices() -> Vec<String> {
         Ok(s) => s,
         Err(e) => format!("Error getting the status output: {e}"),
     };
+    // Create a regular expression that finds all of the lines with an ipv4 address
+    let reg = RegexBuilder::new(r#"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"#)
+        .build()
+        .unwrap();
 
-    let mut status_output: VecDeque<String> = out.lines().map(|line| {
-        line.split_whitespace().skip(1).next().expect("Device name not found").to_string()
-    }).collect();
+    let mut status_output: VecDeque<String> = out.lines()
+    // Filter out the lines that don't match the ipv4 pattern.
+    .filter(
+        |line| reg.is_match(line)
+    )
+    // Map only the device names as elements of the VecDeque
+    .map(|line| {
+        line.split_whitespace().nth(1).expect("Device name not found").to_string()
+    })
+    .collect();
 
+    // Pop this system's device name out of the VecDeque
     status_output.pop_front();
+    // Add Select as the first element
+    status_output.push_front("Select".to_string());
 
+    // Return as a
     status_output.to_owned().into()
 }
 
@@ -109,7 +124,7 @@ pub fn _get_available_devices() -> String {
     String::from_utf8(cmd.unwrap().stdout).unwrap()
 }
 
-/// Set the Tailscale connectio up/down
+/// Set the Tailscale connection up/down
 pub fn tailscale_int_up(up_down: bool) -> bool {
     let mut ret = false;
     if up_down {
@@ -213,6 +228,12 @@ pub async fn tailscale_recieve() -> String {
     rx_status
 }
 
+pub async fn clear_status(wait_time: u64) -> Option<String> {
+    thread::sleep(Duration::from_secs(wait_time));
+
+    None
+}
+
 /// Toggle SSH on/off
 pub fn set_ssh(ssh: bool) -> bool {
     let cmd: Result<Output, Error>;
@@ -230,7 +251,7 @@ pub fn set_ssh(ssh: bool) -> bool {
     match cmd {
         Ok(_) => true,
         Err(e) => {
-            println!("Error occurred: {e}");
+            eprintln!("Error occurred: {e}");
             false
         }
     }
@@ -253,8 +274,115 @@ pub fn set_routes(accept_routes: bool) -> bool {
     match cmd {
         Ok(_) => true,
         Err(e) => {
-            println!("Error occurred: {e}");
+            eprintln!("Error occurred: {e}");
             false
         }
+    }
+}
+
+// Exit Node Section
+
+/// Make current host an exit node
+pub fn enable_exit_node(is_exit_node: bool) {
+    let _advertise_cmd = Command::new("tailscale")
+        .args(["set", &format!("--advertise-exit-node={is_exit_node}")])
+        .spawn()
+        .unwrap();
+
+    let _ = tailscale_int_up(true);
+}
+
+/// Get the status of whether or not the host is an exit node
+pub fn get_is_exit_node() -> bool {
+    let is_exit_node_cmd = Command::new("tailscale")
+    .args(["debug", "prefs"])
+    .stdout(Stdio::piped())
+    .spawn();
+
+    let grep_cmd = Command::new("grep")
+        .args(["-i", "advertiseroutes"])
+        .stdin(is_exit_node_cmd.unwrap().stdout.unwrap())
+        .output();
+
+    let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
+
+    if ssh_status.contains("null") {
+        return false;
+    }
+
+    true
+}
+
+/// Add/remove exit node's access to the host's local LAN
+pub fn exit_node_allow_lan_access(is_allowed: bool) -> String {
+    let allow_lan_access = if is_allowed { "true" } else { "false" };
+
+    let allow_lan_cmd = Command::new("tailscale")
+        .args(["set", &format!("--exit-node-allow-lan-access={allow_lan_access}")])
+        .spawn();
+
+    match allow_lan_cmd {
+        Ok(_) => String::from("Exit node access to LAN allowed!"),
+        Err(e) => format!("Something went wrong: {e}"),
+    }
+} 
+
+/// Get available exit nodes
+pub fn get_avail_exit_nodes() -> Vec<String> {
+    // Run the tailscale exit-node list command
+    let exit_node_list_cmd = Command::new("tailscale")
+        .args(["exit-node", "list"])
+        .output();
+
+    // Get the output String from the command
+    let exit_node_list_string = String::from_utf8(exit_node_list_cmd.unwrap().stdout).unwrap();
+
+    // Return if there are no exit nodes
+    if exit_node_list_string.is_empty() {
+        println!("No exit nodes found!");
+        return vec!["No exit nodes found!".to_string()];
+    }
+
+    // Get all of the exit node parts of the output
+    let exit_node_list: Vec<String> = exit_node_list_string.lines().filter_map(|tail| {
+                if tail.contains("tail") {
+                    Some(tail.to_string())
+                } else {
+                    Some("No exit nodes found!".to_string())
+                }
+    }).collect();
+
+    // Create a new Vec<String> to hold the exit node hostnames
+    let mut exit_node_host_list: Vec<String> = vec!["None".to_string()];
+
+    // Loop through the exit node list to parse it down to the hostnames
+    for line in exit_node_list.iter() {
+        // Get the fully qualified hostname
+        let l = line.split_whitespace().skip(1).next().expect("Could not get node hostname!").to_string();
+
+        // Ensure that it actually is a fully qualified hostname on the tailnet
+        if l.contains("tail") {
+            // Add just the parsed part of the hostname to the host list vec
+            exit_node_host_list.push(
+                l.split(".").next().expect("No hostname to split!").to_string()
+            ); 
+        }
+    }
+
+    // Return the exit node hostname list
+    exit_node_host_list
+}
+
+/// Set selected exit node as the exit node through Tailscale CLI
+pub fn set_exit_node(exit_node: String) -> bool {
+    let _exit_node_set_cmd = Command::new("tailscale")
+        .args(["set", &format!("--exit-node={exit_node}")])
+        .spawn()
+        .expect("Set exit node was not successful!");
+
+    if exit_node.is_empty() {
+        false
+    } else {
+        true
     }
 }
