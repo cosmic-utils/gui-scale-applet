@@ -2,6 +2,8 @@ use std::{
     collections::VecDeque, io::{Error, Read}, process::{Command, Output, Stdio}, thread, time::Duration
 };
 
+use regex::RegexBuilder;
+
 /// Get the IPv4 address assigned to this computer.
 pub fn get_tailscale_ip() -> String {
     let ip_cmd = Command::new("tailscale")
@@ -45,15 +47,28 @@ pub fn get_tailscale_devices() -> Vec<String> {
         Ok(s) => s,
         Err(e) => format!("Error getting the status output: {e}"),
     };
+    // Create a regular expression that finds all of the lines with an ipv4 address
+    let reg = RegexBuilder::new(r#"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"#)
+        .build()
+        .unwrap();
 
-    let mut status_output: VecDeque<String> = out.lines().map(|line| {
-        println!("{line}");
-        line.split_whitespace().skip(1).next().expect("Device name not found").to_string()
-    }).collect();
+    let mut status_output: VecDeque<String> = out.lines()
+    // Filter out the lines that don't match the ipv4 pattern.
+    .filter(
+        |line| reg.is_match(line)
+    )
+    // Map only the device names as elements of the VecDeque
+    .map(|line| {
+        line.split_whitespace().nth(1).expect("Device name not found").to_string()
+    })
+    .collect();
 
+    // Pop this system's device name out of the VecDeque
     status_output.pop_front();
+    // Add Select as the first element
     status_output.push_front("Select".to_string());
 
+    // Return as a
     status_output.to_owned().into()
 }
 
