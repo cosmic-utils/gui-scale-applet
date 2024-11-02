@@ -8,7 +8,7 @@ pub fn update_config<T>(config: Config, key: &str, value: T) where T: Serialize 
 
     match config_set {
         Ok(_) => println!("Config variable for {key} was set to {value}"),
-        Err(e) => println!("Something went wrong setting {key} to {value}"),
+        Err(e) => eprintln!("Something went wrong setting {key} to {value}: {e}"),
     }
 
     let config_tx = config.transaction();
@@ -20,8 +20,8 @@ pub fn update_config<T>(config: Config, key: &str, value: T) where T: Serialize 
     }
 }
 
-pub fn load_exit_node<T>(key: &str) -> T where T: DeserializeOwned {
-    let config = match Config::new("com.github.bhh32.GUIScaleApplet", 1) {
+pub fn load_config<T>(key: &str, config_vers: u64) -> (Option<T>, String) where T: DeserializeOwned {
+    let config = match Config::new("com.github.bhh32.GUIScaleApplet", config_vers) {
         Ok(config) => config,
         Err(e) => {
             eprintln!("Loading config file had an error: {e}");
@@ -30,10 +30,10 @@ pub fn load_exit_node<T>(key: &str) -> T where T: DeserializeOwned {
     };
 
     match config.get(key) {
-        Ok(value) => value,
-        Err(e) => {
-            eprintln!("Could not return value for {key}: {e}");
-            panic!();
+        Ok(value) => (Some(value), "".to_owned()),
+        Err(_e) => {
+            update_config(config, key, "");
+            (None, "Created config for key".to_owned()) 
         }
     }
 }
