@@ -86,11 +86,7 @@ pub fn get_tailscale_ssh_status() -> bool {
 
     let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
 
-    if ssh_status.contains("true") {
-        return true;
-    }
-
-    false
+    ssh_status.contains("true")
 }
 
 /// Get the current status of the accept-routes enablement
@@ -107,11 +103,7 @@ pub fn get_tailscale_routes_status() -> bool {
 
     let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
 
-    if ssh_status.contains("true") {
-        return true;
-    }
-
-    false
+    ssh_status.contains("true")
 }
 
 /// Get available devices
@@ -155,7 +147,7 @@ pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Op
         let mut err_str = String::new();
 
         // Match on the path so Tail Drop can use it to send the file
-        let _ = match path {
+        match path {
             // If there is path value
             Some(p) => {
                 // Send the file
@@ -164,15 +156,11 @@ pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Op
                 .spawn();
 
                 // Check for errors from the tailscale command
-                let _ = match cmd.unwrap().stderr {
-                    Some(mut err) => {
-                        // Update the err_str variable with the error and continue
-                        // to the next file.
-                        let _ = err.read_to_string(&mut err_str);
-                        continue;
-                    }
-                    // If there's no error, we don't need to do anything.
-                    None => {}
+                if let Some(mut err) = cmd.unwrap().stderr {
+                    // Update the err_str variable with the error and continue
+                    // to the next file.
+                    let _ = err.read_to_string(&mut err_str);
+                    continue;
                 };                
             }
             // If the path was no good, send an error message back to the UI.
@@ -218,14 +206,11 @@ pub async fn tailscale_recieve() -> String {
     let rx_stderr = rx_cmd.unwrap().stderr.clone();
 
     // Either send a success or error message back to the UI.
-    let rx_status = if rx_stderr.is_empty() {
+    if rx_stderr.is_empty() {
         "Recieved file(s) in Downloads!".to_string()
     } else {
         String::from_utf8(rx_stderr).unwrap()
-    };
-
-    // Return the recieve status
-    rx_status
+    }
 }
 
 pub async fn clear_status(wait_time: u64) -> Option<String> {
@@ -236,17 +221,15 @@ pub async fn clear_status(wait_time: u64) -> Option<String> {
 
 /// Toggle SSH on/off
 pub fn set_ssh(ssh: bool) -> bool {
-    let cmd: Result<Output, Error>;
-    
-    if ssh {
-        cmd = Command::new("tailscale")
-        .args(["set", "--ssh"])
-        .output();
+    let cmd: Result<Output, Error> = if ssh {
+        Command::new("tailscale")
+            .args(["set", "--ssh"])
+            .output()
     } else {
-        cmd = Command::new("tailscale")
+        Command::new("tailscale")
             .args(["set", "--ssh=false"])
-            .output();
-    }
+            .output()
+    };
 
     match cmd {
         Ok(_) => true,
@@ -259,17 +242,15 @@ pub fn set_ssh(ssh: bool) -> bool {
 
 /// Toggle accept-routes on/off
 pub fn set_routes(accept_routes: bool) -> bool {
-    let cmd: Result<Output, Error>;
-    
-    if accept_routes {
-        cmd = Command::new("tailscale")
-        .args(["set", "--accept-routes"])
-        .output();
+    let cmd: Result<Output, Error> = if accept_routes {
+        Command::new("tailscale")
+            .args(["set", "--accept-routes"])
+            .output()
     } else {
-        cmd = Command::new("tailscale")
+        Command::new("tailscale")
             .args(["set", "--accept-routes=false"])
-            .output();
-    }
+            .output()
+    };
 
     match cmd {
         Ok(_) => true,
@@ -343,34 +324,22 @@ pub fn get_avail_exit_nodes() -> Vec<String> {
         return vec!["No exit nodes found!".to_string()];
     }
 
-    // Get all of the exit node parts of the output
-    let exit_node_list: Vec<String> = exit_node_list_string.lines().filter_map(|tail| {
-                if tail.contains("tail") {
-                    Some(tail.to_string())
-                } else {
-                    Some("No exit nodes found!".to_string())
-                }
-    }).collect();
+    // Get all of the exit node hostnames out of the output
+    let fq_hostname_reg = RegexBuilder::new(r#"\w.\w.ts.net"#).build().ok().unwrap();
+    let mut exit_node_list: Vec<String> = vec!["None".to_string()];
+    
+    let mut exit_node_map: Vec<String> = exit_node_list_string.lines()
+        .filter(|line| fq_hostname_reg.is_match(line))
+        .map(|hostname| {
+            hostname.split_whitespace().nth(1).expect("Could not get node fully qualified hostname!")
+                .split(".").next().expect("Could not get node hostname!").to_string()
+            }
+        )
+        .collect();
 
-    // Create a new Vec<String> to hold the exit node hostnames
-    let mut exit_node_host_list: Vec<String> = vec!["None".to_string()];
+    exit_node_list.append(&mut exit_node_map);
 
-    // Loop through the exit node list to parse it down to the hostnames
-    for line in exit_node_list.iter() {
-        // Get the fully qualified hostname
-        let l = line.split_whitespace().skip(1).next().expect("Could not get node hostname!").to_string();
-
-        // Ensure that it actually is a fully qualified hostname on the tailnet
-        if l.contains("tail") {
-            // Add just the parsed part of the hostname to the host list vec
-            exit_node_host_list.push(
-                l.split(".").next().expect("No hostname to split!").to_string()
-            ); 
-        }
-    }
-
-    // Return the exit node hostname list
-    exit_node_host_list
+    exit_node_list
 }
 
 /// Set selected exit node as the exit node through Tailscale CLI
@@ -380,9 +349,5 @@ pub fn set_exit_node(exit_node: String) -> bool {
         .spawn()
         .expect("Set exit node was not successful!");
 
-    if exit_node.is_empty() {
-        false
-    } else {
-        true
-    }
+    exit_node.is_empty()
 }

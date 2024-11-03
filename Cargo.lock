@@ -2026,15 +2026,10 @@ name = "gui-scale-applet"
 version = "1.0.0"
 dependencies = [
  "libcosmic",
-<<<<<<< HEAD
- "ron",
-=======
  "regex",
->>>>>>> main
  "rust-embed",
  "serde",
  "tokio",
- "tracing",
  "url",
 ]
 
