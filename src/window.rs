@@ -1,35 +1,59 @@
 use std::fmt::Debug;
 use std::path::PathBuf;
-use cosmic::cosmic_config::{Config, ConfigGet, ConfigState, Error};
+use cosmic::cosmic_config::Config;
 use cosmic::dialog::file_chooser::{self, FileFilter};
-use cosmic::iced::alignment::Horizontal;
-use cosmic::iced::Length;
 use cosmic::app::Core;
-use cosmic::iced::widget::{
-    self, 
-    column, 
-    row,
-    horizontal_space,
-};
-use cosmic::iced_widget::{Row, Toggler};
+use cosmic::iced_widget::Row;
 use cosmic::iced::{
-    platform_specific::shell::commands::popup::{destroy_popup, get_popup},
+    alignment::Horizontal,
+    platform_specific::shell::commands::popup::{
+        destroy_popup, 
+        get_popup
+    },
     window::Id,
     Task, 
     Limits,
+    Length,
     Alignment,
+    widget::{
+        column, 
+        row,
+        horizontal_space,
+    },
 };
 use cosmic::iced_runtime::core::window;
-use cosmic::widget::settings::section;
-use cosmic::widget::{button, dropdown, list_column, settings, text, toggler, Widget};
-use cosmic::{cosmic_config::{self, CosmicConfigEntry}, Element, Theme};
+use cosmic::widget::{
+    button, 
+    dropdown, 
+    list_column, 
+    settings::{self, section}, 
+    text, 
+    toggler, 
+};
+use cosmic::Element;
 use url::Url;
-use crate::config::{load_exit_node, update_config};
+use crate::config::{load_config, update_config};
 use crate::logic::{
-    clear_status, enable_exit_node, get_avail_exit_nodes, get_is_exit_node, get_tailscale_con_status, get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status, set_exit_node, set_routes, set_ssh, tailscale_int_up, tailscale_recieve, tailscale_send
+    enable_exit_node,
+    exit_node_allow_lan_access,
+    get_avail_exit_nodes, 
+    get_is_exit_node, 
+    get_tailscale_con_status, 
+    get_tailscale_devices, 
+    get_tailscale_ip, 
+    get_tailscale_routes_status, 
+    get_tailscale_ssh_status, 
+    set_exit_node, 
+    set_routes, 
+    set_ssh, 
+    tailscale_int_up, 
+    tailscale_recieve, 
+    tailscale_send,
+    
 };
 
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
+const CONFIG_VERS: u64 = 1;
 const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
 const POPUP_MAX_WIDTH: f32 = 360.0;
 const POPUP_MIN_WIDTH: f32 = 300.0;
@@ -114,20 +138,11 @@ impl cosmic::Application for Window {
             vec![String::from("Can't select an exit node\nwhile host is an exit node!")]
         };
 
-        let avail_exit_node_desc = if exit_nodes_init[0].contains("host is an exit node") {
-            false
-        } else {
-            true
-        };
+        let avail_exit_node_desc = !exit_nodes_init[0].contains("host is an exit node");
 
         let mut window = Window {
             core,
-            config: match Config::new("com.github.bhh32.GUIScaleApplet", 1) {
-                Ok(new_config) => new_config,
-                Err(_) => {
-                    Config::system("com.github.bhh32.GUIScaleApplet", 1).unwrap()
-                }
-            },
+            config: Config::new("com.github.bhh32.GUIScaleApplet", CONFIG_VERS).unwrap(),
             ssh,
             routes,
             connect,
@@ -148,7 +163,21 @@ impl cosmic::Application for Window {
             is_exit_node,
         };
 
-        window.sel_exit_node_idx = Some(load_exit_node("exit-node"));
+        window.sel_exit_node_idx = match load_config("exit-node", CONFIG_VERS) {
+            (Some(val), _) => Some(val),
+            (None, err_str) => {
+                eprintln!("{err_str}");
+                None
+            }
+        };
+        
+        window.allow_lan = match load_config("allow-lan", CONFIG_VERS) {
+            (Some(val), _) => val,
+            (None, err_str) => {
+                eprintln!("{err_str}");
+                false
+            }
+        };
 
         (
             window,
@@ -376,7 +405,17 @@ impl cosmic::Application for Window {
                     
                 }
             }
-            Message::AllowExitNodeLanAccess(allow_lan_access) => self.allow_lan = allow_lan_access,
+            Message::AllowExitNodeLanAccess(allow_lan_access) => {
+                self.allow_lan = allow_lan_access;
+
+                // Double check that is_exit_node is true
+                if self.is_exit_node {
+                    // Set the host exit node to allow lan access
+                    let _status = exit_node_allow_lan_access(self.allow_lan);
+                    // Update the configuration file, allow-lan
+                    update_config(self.config.clone(), "allow-lan", self.allow_lan);
+                }
+            },
             Message::UpdateSugExitNode(sug_exit_node) => self.sug_exit_node = sug_exit_node,
             Message::UpdateIsExitNode(is_exit_node) => {
                 // Ensure we're not using some other exit node
@@ -431,8 +470,7 @@ impl cosmic::Application for Window {
         let ip = get_tailscale_ip();
         let conn_status = get_tailscale_con_status();
 
-        let mut status_elements: Vec<Element<'_, Message>> = Vec::new();
-        status_elements.push(Element::from(
+        let status_elements: Vec<Element<'_, Message>> = vec![(Element::from(
             column!(
                 row!(
                 settings::item(
@@ -444,15 +482,14 @@ impl cosmic::Application for Window {
                     text(if conn_status { "Tailscale Connected" } else { "Tailscale Disconnected" })
                 )),
             )
-        ));
+        ))];
 
         let status_row = Row::with_children(status_elements)
             .align_y(Alignment::Center)
             .spacing(0);
 
         // Enable/Disable Elements (ssh, routes)
-        let mut enable_elements: Vec<Element<'_, Message>> = Vec::new();
-        enable_elements.push(Element::from(
+        let enable_elements: Vec<Element<'_, Message>> = vec![(Element::from(
             column!(
                 row!(settings::item(
                     "Enable SSH",
@@ -466,13 +503,12 @@ impl cosmic::Application for Window {
                 )),
             )
             .spacing(5)
-        ));
+        ))];
 
         let enable_row = Row::with_children(enable_elements);
 
         // File tx/rx elements
-        let mut taildrop_elements: Vec<Element<'_, Message>> = Vec::new();
-        taildrop_elements.push(Element::from(
+        let taildrop_elements: Vec<Element<'_, Message>> = vec![(Element::from(
             section()
                 .add(
                     row!(text("Tail Drop"))
@@ -491,7 +527,7 @@ impl cosmic::Application for Window {
                     .height(30)
                 ).add(
                     row!(
-                        if self.send_files.len() > 0 {
+                        if !self.send_files.is_empty() {
                         button::standard("Send File(s)")
                             .on_press(Message::SendFiles)
                             .width(140)
@@ -511,12 +547,11 @@ impl cosmic::Application for Window {
                     .height(30),
                 )                
             )            
-        );
+        )];
         
         let taildrop_row = Row::with_children(taildrop_elements);
         // File tx/rx status elements
-        let mut taildrop_status_elements: Vec<Element<'_, Message>> = Vec::new();
-        taildrop_status_elements.push(Element::from(
+        let taildrop_status_elements: Vec<Element<'_, Message>> = vec![(Element::from(
             column!(
                 row!(
                     text("Send/Recieve Status")
@@ -542,7 +577,7 @@ impl cosmic::Application for Window {
                     text(self.recieve_file_status.clone())
                 )
             )
-        ));
+        ))];
 
         let tx_rx_status_row = Row::with_children(taildrop_status_elements);
 
@@ -619,7 +654,7 @@ impl cosmic::Application for Window {
             )
             .spacing(10)
             .align_x(Alignment::Center)
-        ));
+        ))];
 
         let exit_node_row = Row::with_children(exit_node_elements);
 

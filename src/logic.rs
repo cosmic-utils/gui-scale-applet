@@ -62,6 +62,9 @@ pub fn get_tailscale_devices() -> Vec<String> {
         line.split_whitespace().nth(1).expect("Device name not found").to_string()
     })
     .collect();
+    let mut status_output: VecDeque<String> = out.lines().map(|line| {
+        line.split_whitespace().nth(1).expect("Device name not found").to_string()
+    }).collect();
 
     // Pop this system's device name out of the VecDeque
     status_output.pop_front();
