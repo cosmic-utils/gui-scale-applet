@@ -2023,7 +2023,7 @@ checksum = "1df00eed8d1f0db937f6be10e46e8072b0671accb504cf0f959c5c52c679f5b9"
 
 [[package]]
 name = "gui-scale-applet"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "libcosmic",
  "regex",
