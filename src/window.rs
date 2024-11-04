@@ -49,7 +49,7 @@ use crate::logic::{
     tailscale_int_up, 
     tailscale_recieve, 
     tailscale_send,
-    
+    clear_status,
 };
 
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
@@ -317,10 +317,8 @@ impl cosmic::Application for Window {
                     // Use the async command to use a new thread
                     return cosmic::command::future(async move {
                         // Send the file(s) and return the transfer status when the transfer is complete            
-                        let tx_status = match tailscale_send(files, &dev).await {
-                            Some(val) => val,
-                            None => String::new(),
-                        };// **ISSUE IS HERE **
+                        let tx_status = (tailscale_send(files, &dev)).await.unwrap_or_default();
+                        // **ISSUE IS HERE **
                         // When the file(s) are done being sent, send the FilesSent message to the update function
                         Message::FilesSent(tx_status)
                     });
@@ -563,14 +561,12 @@ impl cosmic::Application for Window {
                 row!(
                     if !self.send_file_status.is_empty() {
                         text(self.send_file_status.clone())
+                    } else if self.files_sent && self.selected_device != *"Select" {
+                        text("File(s) were sent successfully!")
+                    } else if self.selected_device == *"Select" {
+                        text("Choose a device first,\nthen reselect your file(s)!")
                     } else {
-                        if self.files_sent && self.selected_device != "Select".to_string() {
-                            text("File(s) were sent successfully!")
-                        } else if self.selected_device == "Select".to_string() {
-                            text("Choose a device first,\nthen reselect your file(s)!")
-                        } else {
-                            text("")
-                        }
+                        text("")
                     }
                 ),
                 row!(
@@ -590,13 +586,13 @@ impl cosmic::Application for Window {
         */
 
         // Using the config file to see if there is an external exit node set
-        let config_exit_node: usize = load_exit_node("exit-node");
+        let (config_exit_node, _err): (Option<usize>, String) = load_config("exit-node", CONFIG_VERS);
         
         // Create element Vector for the exit node elements
         let mut exit_node_elements: Vec<Element<'_, Message>> = Vec::new();
 
         let host_exit_node_col = column!(
-            Element::from(if config_exit_node == 0 {
+            Element::from(if config_exit_node == Some(0) {
                 if !self.is_exit_node {
                     toggler(self.is_exit_node)
                         .label("Enable Host Exit Node")
@@ -654,7 +650,7 @@ impl cosmic::Application for Window {
             )
             .spacing(10)
             .align_x(Alignment::Center)
-        ))];
+        ));
 
         let exit_node_row = Row::with_children(exit_node_elements);
 

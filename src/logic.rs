@@ -31,11 +31,7 @@ pub fn get_tailscale_con_status() -> bool {
 
     let con_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
 
-    if con_status.contains("true") {
-        return true;
-    }
-
-    false
+    con_status.contains("true")
 }
 
 pub fn get_tailscale_devices() -> Vec<String> {
@@ -62,9 +58,6 @@ pub fn get_tailscale_devices() -> Vec<String> {
         line.split_whitespace().nth(1).expect("Device name not found").to_string()
     })
     .collect();
-    let mut status_output: VecDeque<String> = out.lines().map(|line| {
-        line.split_whitespace().nth(1).expect("Device name not found").to_string()
-    }).collect();
 
     // Pop this system's device name out of the VecDeque
     status_output.pop_front();
