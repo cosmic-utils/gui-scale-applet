@@ -17,6 +17,7 @@ use cosmic::iced::{
 };
 use cosmic::iced_runtime::core::window;
 use cosmic::iced_widget::Row;
+use cosmic::iced_winit::graphics::text::cosmic_text::Align;
 use cosmic::widget::{
     button, dropdown, list_column,
     settings::{self, section},
@@ -75,7 +76,7 @@ pub enum Message {
     ExitNodeSelected(usize),
     AllowExitNodeLanAccess(bool),
     UpdateIsExitNode(bool),
-    ClearTailDropStatus,
+    ClearTailDropStatus
 }
 
 impl cosmic::Application for Window {
@@ -278,11 +279,11 @@ impl cosmic::Application for Window {
                     // Use the async command to use a new thread
                     return cosmic::command::future(async move {
                         // Send the file(s) and return the transfer status when the transfer is complete
-
-                        // Status clearing bug starts here. Unsure why this doesn't wait for the status to return before
+                        
+                        // Status clearing bug starts here. Unsure why this doesn't wait for the status to return before 
                         // sending the FilesSent message.
                         let tx_status = (tailscale_send(files, &dev)).await;
-
+                        
                         // When the file(s) are done being sent, send the FilesSent message to the update function
                         Message::FilesSent(tx_status)
                     });
@@ -296,14 +297,17 @@ impl cosmic::Application for Window {
                     Some(err_val) => err_val,
                     None => String::from("File(s) sent successfully!"),
                 };
+                
 
                 if !self.send_file_status.is_empty() {
                     if !self.send_files.is_empty() {
                         // 2. Clear the selected files that were just sent from the vector
                         self.send_files.clear();
                     }
-
-                    return cosmic::command::future(async move { Message::ClearTailDropStatus });
+                    
+                    return cosmic::command::future(                        
+                        async move { Message::ClearTailDropStatus },
+                    );
                 }
             }
             Message::FileChoosingCancelled => {
@@ -339,7 +343,9 @@ impl cosmic::Application for Window {
                 self.recieve_file_status = rx_status;
 
                 if !self.recieve_file_status.is_empty() {
-                    return cosmic::command::future(async move { Message::ClearTailDropStatus });
+                    return cosmic::command::future(
+                        async move { Message::ClearTailDropStatus },
+                    );
                 }
             }
             Message::ExitNodeSelected(exit_node) => {
@@ -472,8 +478,65 @@ impl cosmic::Application for Window {
 
         // File tx/rx elements
         let taildrop_elements: Vec<Element<'_, Message>> = vec![
-            (Element::from(
-                section()
+            Element::from(
+                column!(
+                    row!(
+                        text("Tail Drop")
+                    )
+                    .align_y(Alignment::Center),
+                    row!(
+                        column!(
+                            dropdown(
+                                &self.device_options,
+                                self.selected_device_idx,
+                                Message::DeviceSelected
+                            )
+                            .width(140),
+                        )
+                        .align_x(Horizontal::Left)
+                        .padding(5),
+                        horizontal_space().width(100),
+                        column!(
+                            button::standard("Select File(s)")
+                                .on_press(Message::ChooseFiles)
+                                .width(140)
+                                .tooltip("Select the file(s) to send.")
+                        )
+                        .align_x(Horizontal::Right)
+                        .padding(5)
+                    )
+                    .align_y(Alignment::Center)
+                    .spacing(25),
+                    row!(
+                        column!(
+                            if !self.send_files.is_empty() {
+                                button::standard("Send File(s)")
+                                    .on_press(Message::SendFiles)
+                                    .width(140)
+                                    .tooltip("Send the selected file(s).")
+                            } else {
+                                button::standard("Send File(s)")
+                                    .width(140)
+                                    .tooltip("Send the selected file(s).")
+                            }
+                        )
+                        .align_x(Horizontal::Left)
+                        .padding(5),
+                        horizontal_space().width(100),
+                        column!(
+                            button::standard("Recieve File(s)")
+                                .on_press(Message::RecieveFiles)
+                                .width(140)
+                                .tooltip("Recieve files waiting in the Tail Drop inbox.")
+                        )
+                        .align_x(Horizontal::Right)
+                        .padding(5)
+                    )
+                    .align_y(Alignment::Center)
+                    .spacing(25)
+                )
+                .align_x(Alignment::Center)
+                /*section()
                     .add(row!(text("Tail Drop")).align_y(Alignment::Center))
                     .add(
                         row!(
@@ -512,7 +575,8 @@ impl cosmic::Application for Window {
                         .align_y(Alignment::Center)
                         .height(30),
                     ),
-            )),
+                )*/
+            ),
         ];
 
         let taildrop_row = Row::with_children(taildrop_elements);
