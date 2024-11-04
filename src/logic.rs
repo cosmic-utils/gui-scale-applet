@@ -1,5 +1,9 @@
 use std::{
-    collections::VecDeque, io::{Error, Read}, process::{Command, Output, Stdio}, thread, time::Duration
+    collections::VecDeque,
+    io::{Error, Read},
+    process::{Command, Output, Stdio},
+    thread,
+    time::Duration,
 };
 
 use regex::RegexBuilder;
@@ -35,9 +39,7 @@ pub fn get_tailscale_con_status() -> bool {
 }
 
 pub fn get_tailscale_devices() -> Vec<String> {
-    let ts_status_cmd = Command::new("tailscale")
-        .arg("status")
-        .output();
+    let ts_status_cmd = Command::new("tailscale").arg("status").output();
 
     let out = match String::from_utf8(ts_status_cmd.unwrap().stdout) {
         Ok(s) => s,
@@ -48,16 +50,18 @@ pub fn get_tailscale_devices() -> Vec<String> {
         .build()
         .unwrap();
 
-    let mut status_output: VecDeque<String> = out.lines()
-    // Filter out the lines that don't match the ipv4 pattern.
-    .filter(
-        |line| reg.is_match(line)
-    )
-    // Map only the device names as elements of the VecDeque
-    .map(|line| {
-        line.split_whitespace().nth(1).expect("Device name not found").to_string()
-    })
-    .collect();
+    let mut status_output: VecDeque<String> = out
+        .lines()
+        // Filter out the lines that don't match the ipv4 pattern.
+        .filter(|line| reg.is_match(line))
+        // Map only the device names as elements of the VecDeque
+        .map(|line| {
+            line.split_whitespace()
+                .nth(1)
+                .expect("Device name not found")
+                .to_string()
+        })
+        .collect();
 
     // Pop this system's device name out of the VecDeque
     status_output.pop_front();
@@ -71,9 +75,9 @@ pub fn get_tailscale_devices() -> Vec<String> {
 /// Get the current status of the SSH enablement
 pub fn get_tailscale_ssh_status() -> bool {
     let ssh_cmd = Command::new("tailscale")
-    .args(["debug", "prefs"])
-    .stdout(Stdio::piped())
-    .spawn();
+        .args(["debug", "prefs"])
+        .stdout(Stdio::piped())
+        .spawn();
 
     let grep_cmd = Command::new("grep")
         .arg("RunSSH")
@@ -88,9 +92,9 @@ pub fn get_tailscale_ssh_status() -> bool {
 /// Get the current status of the accept-routes enablement
 pub fn get_tailscale_routes_status() -> bool {
     let ssh_cmd = Command::new("tailscale")
-    .args(["debug", "prefs"])
-    .stdout(Stdio::piped())
-    .spawn();
+        .args(["debug", "prefs"])
+        .stdout(Stdio::piped())
+        .spawn();
 
     let grep_cmd = Command::new("grep")
         .arg("RouteAll")
@@ -108,7 +112,6 @@ pub fn _get_available_devices() -> String {
         .args(["status", "--active"])
         .output();
 
-
     String::from_utf8(cmd.unwrap().stdout).unwrap()
 }
 
@@ -116,15 +119,11 @@ pub fn _get_available_devices() -> String {
 pub fn tailscale_int_up(up_down: bool) -> bool {
     let mut ret = false;
     if up_down {
-        let _ = Command::new("tailscale")
-                .arg("up")
-                .output();
+        let _ = Command::new("tailscale").arg("up").output();
 
         ret = true;
     } else {
-        let _ = Command::new("tailscale")
-            .arg("down")
-            .output();
+        let _ = Command::new("tailscale").arg("down").output();
     }
 
     ret
@@ -148,8 +147,8 @@ pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Op
             Some(p) => {
                 // Send the file
                 let cmd = Command::new("tailscale")
-                .args(["file", "cp", p, &format!("{target}:")])
-                .spawn();
+                    .args(["file", "cp", p, &format!("{target}:")])
+                    .spawn();
 
                 // Check for errors from the tailscale command
                 if let Some(mut err) = cmd.unwrap().stderr {
@@ -157,22 +156,25 @@ pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Op
                     // to the next file.
                     let _ = err.read_to_string(&mut err_str);
                     continue;
-                };                
+                };
             }
             // If the path was no good, send an error message back to the UI.
-            None => return Some(String::from("Something went wrong sending the file!\nPossible bad file path!")),
+            None => {
+                return Some(String::from(
+                    "Something went wrong sending the file!\nPossible bad file path!",
+                ))
+            }
         };
 
         // If there were an error, add it to the status Vec
-        if !err_str.is_empty() { 
+        if !err_str.is_empty() {
             status.push(Some(err_str));
-        
         }
     }
 
     // If we got any errors, let the user know about them.
     if !status.is_empty() {
-        return Some("One or more files were not sent successfully!".to_string())
+        return Some("One or more files were not sent successfully!".to_string());
     }
 
     None
@@ -183,9 +185,7 @@ pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Op
 /// non-blocking for the UI.
 pub async fn tailscale_recieve() -> String {
     // Get the username of the current user.
-    let whoami_cmd = Command::new("whoami")
-        .output()
-        .unwrap();
+    let whoami_cmd = Command::new("whoami").output().unwrap();
 
     // Set the username to a variable.
     let username = String::from_utf8(whoami_cmd.stdout).unwrap();
@@ -218,9 +218,7 @@ pub async fn clear_status(wait_time: u64) -> Option<String> {
 /// Toggle SSH on/off
 pub fn set_ssh(ssh: bool) -> bool {
     let cmd: Result<Output, Error> = if ssh {
-        Command::new("tailscale")
-            .args(["set", "--ssh"])
-            .output()
+        Command::new("tailscale").args(["set", "--ssh"]).output()
     } else {
         Command::new("tailscale")
             .args(["set", "--ssh=false"])
@@ -272,9 +270,9 @@ pub fn enable_exit_node(is_exit_node: bool) {
 /// Get the status of whether or not the host is an exit node
 pub fn get_is_exit_node() -> bool {
     let is_exit_node_cmd = Command::new("tailscale")
-    .args(["debug", "prefs"])
-    .stdout(Stdio::piped())
-    .spawn();
+        .args(["debug", "prefs"])
+        .stdout(Stdio::piped())
+        .spawn();
 
     let grep_cmd = Command::new("grep")
         .args(["-i", "advertiseroutes"])
@@ -295,14 +293,17 @@ pub fn exit_node_allow_lan_access(is_allowed: bool) -> String {
     let allow_lan_access = if is_allowed { "true" } else { "false" };
 
     let allow_lan_cmd = Command::new("tailscale")
-        .args(["set", &format!("--exit-node-allow-lan-access={allow_lan_access}")])
+        .args([
+            "set",
+            &format!("--exit-node-allow-lan-access={allow_lan_access}"),
+        ])
         .spawn();
 
     match allow_lan_cmd {
         Ok(_) => String::from("Exit node access to LAN allowed!"),
         Err(e) => format!("Something went wrong: {e}"),
     }
-} 
+}
 
 /// Get available exit nodes
 pub fn get_avail_exit_nodes() -> Vec<String> {
@@ -323,14 +324,20 @@ pub fn get_avail_exit_nodes() -> Vec<String> {
     // Get all of the exit node hostnames out of the output
     let fq_hostname_reg = RegexBuilder::new(r#"\w.\w.ts.net"#).build().ok().unwrap();
     let mut exit_node_list: Vec<String> = vec!["None".to_string()];
-    
-    let mut exit_node_map: Vec<String> = exit_node_list_string.lines()
+
+    let mut exit_node_map: Vec<String> = exit_node_list_string
+        .lines()
         .filter(|line| fq_hostname_reg.is_match(line))
         .map(|hostname| {
-            hostname.split_whitespace().nth(1).expect("Could not get node fully qualified hostname!")
-                .split(".").next().expect("Could not get node hostname!").to_string()
-            }
-        )
+            hostname
+                .split_whitespace()
+                .nth(1)
+                .expect("Could not get node fully qualified hostname!")
+                .split(".")
+                .next()
+                .expect("Could not get node hostname!")
+                .to_string()
+        })
         .collect();
 
     exit_node_list.append(&mut exit_node_map);

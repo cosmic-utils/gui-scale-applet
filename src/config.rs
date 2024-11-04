@@ -3,7 +3,10 @@ use std::fmt::Display;
 use cosmic::cosmic_config::{Config, ConfigGet, ConfigSet};
 use serde::{de::DeserializeOwned, Serialize};
 
-pub fn update_config<T>(config: Config, key: &str, value: T) where T: Serialize + Display + Clone {
+pub fn update_config<T>(config: Config, key: &str, value: T)
+where
+    T: Serialize + Display + Clone,
+{
     let config_set = config.set(key, value.clone());
 
     match config_set {
@@ -20,7 +23,10 @@ pub fn update_config<T>(config: Config, key: &str, value: T) where T: Serialize 
     }
 }
 
-pub fn load_config<T>(key: &str, config_vers: u64) -> (Option<T>, String) where T: DeserializeOwned {
+pub fn load_config<T>(key: &str, config_vers: u64) -> (Option<T>, String)
+where
+    T: DeserializeOwned,
+{
     let config = match Config::new("com.github.bhh32.GUIScaleApplet", config_vers) {
         Ok(config) => config,
         Err(e) => {
@@ -33,7 +39,7 @@ pub fn load_config<T>(key: &str, config_vers: u64) -> (Option<T>, String) where 
         Ok(value) => (Some(value), "".to_owned()),
         Err(_e) => {
             update_config(config, key, "");
-            (None, "Created config for key".to_owned()) 
+            (None, "Created config for key".to_owned())
         }
     }
 }

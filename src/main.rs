@@ -1,6 +1,6 @@
-mod window;
-mod logic;
 mod config;
+mod logic;
+mod window;
 
 use crate::window::Window;
 
