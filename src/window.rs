@@ -76,7 +76,7 @@ pub enum Message {
     ExitNodeSelected(usize),
     AllowExitNodeLanAccess(bool),
     UpdateIsExitNode(bool),
-    ClearTailDropStatus
+    ClearTailDropStatus,
 }
 
 impl cosmic::Application for Window {
@@ -207,7 +207,7 @@ impl cosmic::Application for Window {
                 }
             }
             Message::ChooseFiles => {
-                return cosmic::command::future(async move {
+                return cosmic::task::future(async move {
                     let file_filter = FileFilter::new("Any").glob("*.*");
                     let dialog = file_chooser::open::Dialog::new()
                         .title("Choose a file or files...")
@@ -277,13 +277,13 @@ impl cosmic::Application for Window {
                 if dev != "Select" {
                     self.files_sent = true;
                     // Use the async command to use a new thread
-                    return cosmic::command::future(async move {
+                    return cosmic::task::future(async move {
                         // Send the file(s) and return the transfer status when the transfer is complete
-                        
-                        // Status clearing bug starts here. Unsure why this doesn't wait for the status to return before 
+
+                        // Status clearing bug starts here. Unsure why this doesn't wait for the status to return before
                         // sending the FilesSent message.
                         let tx_status = (tailscale_send(files, &dev)).await;
-                        
+
                         // When the file(s) are done being sent, send the FilesSent message to the update function
                         Message::FilesSent(tx_status)
                     });
@@ -297,17 +297,14 @@ impl cosmic::Application for Window {
                     Some(err_val) => err_val,
                     None => String::from("File(s) sent successfully!"),
                 };
-                
 
                 if !self.send_file_status.is_empty() {
                     if !self.send_files.is_empty() {
                         // 2. Clear the selected files that were just sent from the vector
                         self.send_files.clear();
                     }
-                    
-                    return cosmic::command::future(                        
-                        async move { Message::ClearTailDropStatus },
-                    );
+
+                    return cosmic::task::future(async move { Message::ClearTailDropStatus });
                 }
             }
             Message::FileChoosingCancelled => {
@@ -334,7 +331,7 @@ impl cosmic::Application for Window {
                 return get_popup(popup_settings);
             }
             Message::RecieveFiles => {
-                return cosmic::command::future(async move {
+                return cosmic::task::future(async move {
                     let rx_status = tailscale_recieve().await;
                     Message::FilesRecieved(rx_status)
                 });
@@ -343,9 +340,7 @@ impl cosmic::Application for Window {
                 self.recieve_file_status = rx_status;
 
                 if !self.recieve_file_status.is_empty() {
-                    return cosmic::command::future(
-                        async move { Message::ClearTailDropStatus },
-                    );
+                    return cosmic::task::future(async move { Message::ClearTailDropStatus });
                 }
             }
             Message::ExitNodeSelected(exit_node) => {
@@ -401,7 +396,7 @@ impl cosmic::Application for Window {
             Message::ClearTailDropStatus => {
                 // Clear the files recieved status in the status clear time
                 if !self.recieve_file_status.is_empty() {
-                    return cosmic::command::future(async move {
+                    return cosmic::task::future(async move {
                         Message::FilesRecieved(match clear_status(STATUS_CLEAR_TIME).await {
                             Some(bad_value) => format!("Something went wrong and clear status returned a value: {bad_value}"),
                             None => String::new(),
@@ -414,7 +409,7 @@ impl cosmic::Application for Window {
                     // 5. Reset the selected_device back to Selected
                     self.selected_device = self.device_options[0].clone();
 
-                    return cosmic::command::future(async move {
+                    return cosmic::task::future(async move {
                         Message::FilesSent(match clear_status(STATUS_CLEAR_TIME).await {
                             Some(bad_value) => Some(format!("Something went wrong and clear status returned a value: {bad_value}")),
                             None => Some(String::new()),
@@ -477,107 +472,93 @@ impl cosmic::Application for Window {
         let enable_row = Row::with_children(enable_elements);
 
         // File tx/rx elements
-        let taildrop_elements: Vec<Element<'_, Message>> = vec![
-            Element::from(
-                column!(
-                    row!(
-                        text("Tail Drop")
+        let taildrop_elements: Vec<Element<'_, Message>> = vec![Element::from(
+            column!(
+                row!(text("Tail Drop")).align_y(Alignment::Center),
+                row!(
+                    column!(dropdown(
+                        &self.device_options,
+                        self.selected_device_idx,
+                        Message::DeviceSelected
                     )
-                    .align_y(Alignment::Center),
-                    row!(
-                        column!(
-                            dropdown(
-                                &self.device_options,
-                                self.selected_device_idx,
-                                Message::DeviceSelected
-                            )
-                            .width(140),
-                        )
-                        .align_x(Horizontal::Left)
-                        .padding(5),
-                        horizontal_space().width(100),
-                        column!(
-                            button::standard("Select File(s)")
-                                .on_press(Message::ChooseFiles)
-                                .width(140)
-                                .tooltip("Select the file(s) to send.")
-                        )
-                        .align_x(Horizontal::Right)
-                        .padding(5)
-                    )
-                    .align_y(Alignment::Center)
-                    .spacing(25),
-                    row!(
-                        column!(
-                            if !self.send_files.is_empty() {
-                                button::standard("Send File(s)")
-                                    .on_press(Message::SendFiles)
-                                    .width(140)
-                                    .tooltip("Send the selected file(s).")
-                            } else {
-                                button::standard("Send File(s)")
-                                    .width(140)
-                                    .tooltip("Send the selected file(s).")
-                            }
-                        )
-                        .align_x(Horizontal::Left)
-                        .padding(5),
-                        horizontal_space().width(100),
-                        column!(
-                            button::standard("Recieve File(s)")
-                                .on_press(Message::RecieveFiles)
-                                .width(140)
-                                .tooltip("Recieve files waiting in the Tail Drop inbox.")
-                        )
-                        .align_x(Horizontal::Right)
-                        .padding(5)
-                    )
-                    .align_y(Alignment::Center)
-                    .spacing(25)
+                    .width(140),)
+                    .align_x(Horizontal::Left)
+                    .padding(5),
+                    horizontal_space().width(100),
+                    column!(button::standard("Select File(s)")
+                        .on_press(Message::ChooseFiles)
+                        .width(140)
+                        .tooltip("Select the file(s) to send."))
+                    .align_x(Horizontal::Right)
+                    .padding(5)
                 )
-                .align_x(Alignment::Center)
-                /*section()
-                    .add(row!(text("Tail Drop")).align_y(Alignment::Center))
-                    .add(
-                        row!(
-                            dropdown(
-                                &self.device_options,
-                                self.selected_device_idx,
-                                Message::DeviceSelected
-                            )
-                            .width(140),
-                            horizontal_space().width(5),
-                            button::standard("Select File(s)")
-                                .on_press(Message::ChooseFiles)
-                                .width(140)
-                                .tooltip("Select the file(s) to send.")
-                        )
-                        .height(30),
-                    )
-                    .add(
-                        row!(
-                            if !self.send_files.is_empty() {
-                                button::standard("Send File(s)")
-                                    .on_press(Message::SendFiles)
-                                    .width(140)
-                                    .tooltip("Send the selected file(s).")
-                            } else {
-                                button::standard("Send File(s)")
-                                    .width(140)
-                                    .tooltip("Send the selected file(s).")
-                            },
-                            horizontal_space().width(5),
-                            button::standard("Recieve File(s)")
-                                .on_press(Message::RecieveFiles)
-                                .width(140)
-                                .tooltip("Recieve files waiting in the Tail Drop inbox.")
-                        )
-                        .align_y(Alignment::Center)
-                        .height(30),
-                    ),
-                )*/
-            ),
-        ];
+                .align_y(Alignment::Center)
+                .spacing(25),
+                row!(
+                    column!(if !self.send_files.is_empty() {
+                        button::standard("Send File(s)")
+                            .on_press(Message::SendFiles)
+                            .width(140)
+                            .tooltip("Send the selected file(s).")
+                    } else {
+                        button::standard("Send File(s)")
+                            .width(140)
+                            .tooltip("Send the selected file(s).")
+                    })
+                    .align_x(Horizontal::Left)
+                    .padding(5),
+                    horizontal_space().width(100),
+                    column!(button::standard("Recieve File(s)")
+                        .on_press(Message::RecieveFiles)
+                        .width(140)
+                        .tooltip("Recieve files waiting in the Tail Drop inbox."))
+                    .align_x(Horizontal::Right)
+                    .padding(5)
+                )
+                .align_y(Alignment::Center)
+                .spacing(25)
+            )
+            .align_x(Alignment::Center), /*section()
+                                             .add(row!(text("Tail Drop")).align_y(Alignment::Center))
+                                             .add(
+                                                 row!(
+                                                     dropdown(
+                                                         &self.device_options,
+                                                         self.selected_device_idx,
+                                                         Message::DeviceSelected
+                                                     )
+                                                     .width(140),
+                                                     horizontal_space().width(5),
+                                                     button::standard("Select File(s)")
+                                                         .on_press(Message::ChooseFiles)
+                                                         .width(140)
+                                                         .tooltip("Select the file(s) to send.")
+                                                 )
+                                                 .height(30),
+                                             )
+                                             .add(
+                                                 row!(
+                                                     if !self.send_files.is_empty() {
+                                                         button::standard("Send File(s)")
+                                                             .on_press(Message::SendFiles)
+                                                             .width(140)
+                                                             .tooltip("Send the selected file(s).")
+                                                     } else {
+                                                         button::standard("Send File(s)")
+                                                             .width(140)
+                                                             .tooltip("Send the selected file(s).")
+                                                     },
+                                                     horizontal_space().width(5),
+                                                     button::standard("Recieve File(s)")
+                                                         .on_press(Message::RecieveFiles)
+                                                         .width(140)
+                                                         .tooltip("Recieve files waiting in the Tail Drop inbox.")
+                                                 )
+                                                 .align_y(Alignment::Center)
+                                                 .height(30),
+                                             ),
+                                         )*/
+        )];
 
         let taildrop_row = Row::with_children(taildrop_elements);
         // File tx/rx status elements
