@@ -1050,7 +1050,7 @@ dependencies = [
 [[package]]
 name = "cosmic-panel-config"
 version = "0.1.0"
-source = "git+https://github.com/pop-os/cosmic-panel#fcaaeaf3b9dbaea7458b69de5742a4ae97909d73"
+source = "git+https://github.com/pop-os/cosmic-panel#4a777bc4f6c77b409d1fd3aa5b09ecfb1c25ded1"
 dependencies = [
  "anyhow",
  "cosmic-config",
@@ -1079,13 +1079,12 @@ dependencies = [
 [[package]]
 name = "cosmic-text"
 version = "0.12.1"
-source = "git+https://github.com/pop-os/cosmic-text.git#1ab7fc213d4230276f01b34bfe0ee82ec8bbe150"
+source = "git+https://github.com/pop-os/cosmic-text.git#166b59f560c551dab391a864f7c1f503c1e18446"
 dependencies = [
  "bitflags 2.6.0",
  "fontdb 0.16.2",
  "log",
  "rangemap",
- "rayon",
  "rustc-hash 1.1.0",
  "rustybuzz",
  "self_cell",
@@ -5831,7 +5830,7 @@ dependencies = [
 [[package]]
 name = "xdg-shell-wrapper-config"
 version = "0.1.0"
-source = "git+https://github.com/pop-os/cosmic-panel#fcaaeaf3b9dbaea7458b69de5742a4ae97909d73"
+source = "git+https://github.com/pop-os/cosmic-panel#4a777bc4f6c77b409d1fd3aa5b09ecfb1c25ded1"
 dependencies = [
  "serde",
  "wayland-protocols-wlr",
