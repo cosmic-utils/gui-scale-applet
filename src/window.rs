@@ -17,10 +17,9 @@ use cosmic::iced::{
 };
 use cosmic::iced_runtime::core::window;
 use cosmic::iced_widget::Row;
-use cosmic::iced_winit::graphics::text::cosmic_text::Align;
 use cosmic::widget::{
     button, dropdown, list_column,
-    settings::{self, section},
+    settings::{self},
     text, toggler,
 };
 use cosmic::Element;
