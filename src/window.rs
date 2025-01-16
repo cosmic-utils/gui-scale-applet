@@ -36,6 +36,7 @@ const POPUP_MAX_HEIGHT: f32 = 1080.0;
 const POPUP_MIN_HEIGHT: f32 = 200.0;
 const STATUS_CLEAR_TIME: u64 = 5;
 
+/// Holds the applet's state
 pub struct Window {
     core: Core,
     config: Config,
@@ -57,6 +58,7 @@ pub struct Window {
     is_exit_node: bool,
 }
 
+/// Messages to be sent to the Libcosmic Update function
 #[derive(Clone, Debug)]
 pub enum Message {
     TogglePopup,
@@ -93,14 +95,23 @@ impl cosmic::Application for Window {
     }
 
     fn init(core: Core, _flags: Self::Flags) -> (Window, Task<cosmic::app::Message<Message>>) {
+        // Get the SSH status from the Tailscale CLI
         let ssh = get_tailscale_ssh_status();
+        // Get the Accept Routes status from the Tailscale CLI
         let routes = get_tailscale_routes_status();
+        // Get the connection status from the Tailscale CLI
         let connect = get_tailscale_con_status();
+        // Get the other devices on the Tailnet from the Tailscale CLI
         let dev_init = get_tailscale_devices();
 
+        // Set the default applet state for allow_lan to false
         let allow_lan = false;
+        // Get the state of the host being an exit node from the Tailscale CLI
         let is_exit_node = get_is_exit_node();
 
+        // Check to see if the host is an exit node already.
+        // If it's not, get the available exit nodes.
+        // If it is, set exit_nodes_init to the messag.
         let exit_nodes_init = if !is_exit_node {
             get_avail_exit_nodes()
         } else {
@@ -109,9 +120,10 @@ impl cosmic::Application for Window {
             )]
         };
 
+        // Set the start up state of the application using the above variables
         let mut window = Window {
             core,
-            config: Config::new("com.github.bhh32.GUIScaleApplet", CONFIG_VERS).unwrap(),
+            config: Config::new(ID, CONFIG_VERS).unwrap(),
             ssh,
             routes,
             connect,
@@ -130,6 +142,7 @@ impl cosmic::Application for Window {
             is_exit_node,
         };
 
+        // Set the exit node index state from the config file
         window.sel_exit_node_idx = match load_config("exit-node", CONFIG_VERS) {
             (Some(val), _) => Some(val),
             (None, err_str) => {
@@ -138,6 +151,7 @@ impl cosmic::Application for Window {
             }
         };
 
+        // Set the allow lan state from the config file
         window.allow_lan = match load_config("allow-lan", CONFIG_VERS) {
             (Some(val), _) => val,
             (None, err_str) => {
@@ -146,13 +160,16 @@ impl cosmic::Application for Window {
             }
         };
 
+        // Return the state and no Task
         (window, Task::none())
     }
 
+    // The function that is called when the applet is closed
     fn on_close_requested(&self, id: window::Id) -> Option<Message> {
         Some(Message::PopupClosed(id))
     }
 
+    // Libcosmic's update function
     fn update(&mut self, message: Self::Message) -> Task<cosmic::app::Message<Self::Message>> {
         match message {
             Message::TogglePopup => {
@@ -303,6 +320,7 @@ impl cosmic::Application for Window {
                         self.send_files.clear();
                     }
 
+                    // Create a task in a separate thread that clears the TailDrop status after a designated amount of time.
                     return cosmic::task::future(async move { Message::ClearTailDropStatus });
                 }
             }
@@ -330,6 +348,7 @@ impl cosmic::Application for Window {
                 return get_popup(popup_settings);
             }
             Message::RecieveFiles => {
+                // Run the recieve function in a separate thread so it doesn't block the current thread.
                 return cosmic::task::future(async move {
                     let rx_status = tailscale_recieve().await;
                     Message::FilesRecieved(rx_status)
@@ -339,6 +358,7 @@ impl cosmic::Application for Window {
                 self.recieve_file_status = rx_status;
 
                 if !self.recieve_file_status.is_empty() {
+                    // Create a task in a separate thread that clears the TailDrop status after a designated amount of time.
                     return cosmic::task::future(async move { Message::ClearTailDropStatus });
                 }
             }
@@ -395,12 +415,14 @@ impl cosmic::Application for Window {
             Message::ClearTailDropStatus => {
                 // Clear the files recieved status in the status clear time
                 if !self.recieve_file_status.is_empty() {
+                    // Done in a separate thread as to not block the current thread.
                     return cosmic::task::future(async move {
                         Message::FilesRecieved(match clear_status(STATUS_CLEAR_TIME).await {
                             Some(bad_value) => format!("Something went wrong and clear status returned a value: {bad_value}"),
                             None => String::new(),
                         })
                     });
+                // Clear the send files status in the status clear time
                 } else if !self.send_file_status.is_empty() || self.files_sent {
                     println!("Entered clear tail drop status message send");
                     // 4. Reset the selected_device_idx back to 0 (Selected)
@@ -408,6 +430,7 @@ impl cosmic::Application for Window {
                     // 5. Reset the selected_device back to Selected
                     self.selected_device = self.device_options[0].clone();
 
+                    // Done in a separate thread as to not block the current thread.
                     return cosmic::task::future(async move {
                         Message::FilesSent(match clear_status(STATUS_CLEAR_TIME).await {
                             Some(bad_value) => Some(format!("Something went wrong and clear status returned a value: {bad_value}")),
@@ -420,14 +443,17 @@ impl cosmic::Application for Window {
         Task::none()
     }
 
+    // Libcosmic's view function
     fn view(&self) -> Element<Self::Message> {
         self.core
             .applet
+            // Set the icon button to the tailscale-icon defined during installation.
             .icon_button("tailscale-icon")
             .on_press(Message::TogglePopup)
             .into()
     }
 
+    // Libcosmic's applet view_window function
     fn view_window(&self, _id: Id) -> Element<Self::Message> {
         // Normal status elements
         let ip = get_tailscale_ip();
@@ -517,46 +543,7 @@ impl cosmic::Application for Window {
                 .align_y(Alignment::Center)
                 .spacing(25)
             )
-            .align_x(Alignment::Center), /*section()
-                                             .add(row!(text("Tail Drop")).align_y(Alignment::Center))
-                                             .add(
-                                                 row!(
-                                                     dropdown(
-                                                         &self.device_options,
-                                                         self.selected_device_idx,
-                                                         Message::DeviceSelected
-                                                     )
-                                                     .width(140),
-                                                     horizontal_space().width(5),
-                                                     button::standard("Select File(s)")
-                                                         .on_press(Message::ChooseFiles)
-                                                         .width(140)
-                                                         .tooltip("Select the file(s) to send.")
-                                                 )
-                                                 .height(30),
-                                             )
-                                             .add(
-                                                 row!(
-                                                     if !self.send_files.is_empty() {
-                                                         button::standard("Send File(s)")
-                                                             .on_press(Message::SendFiles)
-                                                             .width(140)
-                                                             .tooltip("Send the selected file(s).")
-                                                     } else {
-                                                         button::standard("Send File(s)")
-                                                             .width(140)
-                                                             .tooltip("Send the selected file(s).")
-                                                     },
-                                                     horizontal_space().width(5),
-                                                     button::standard("Recieve File(s)")
-                                                         .on_press(Message::RecieveFiles)
-                                                         .width(140)
-                                                         .tooltip("Recieve files waiting in the Tail Drop inbox.")
-                                                 )
-                                                 .align_y(Alignment::Center)
-                                                 .height(30),
-                                             ),
-                                         )*/
+            .align_x(Alignment::Center),
         )];
 
         let taildrop_row = Row::with_children(taildrop_elements);
@@ -643,8 +630,7 @@ impl cosmic::Application for Window {
                     .padding(15)
                     .align_x(Alignment::Center),
                     column!(
-                        // Use the config exit node setting to enable/disable the host
-                        // exit node toggler.
+                        // Use the config exit node setting to enable/disable the host's exit node toggler.
                         host_exit_node_col
                     )
                     .padding(15)

@@ -68,7 +68,6 @@ pub fn get_tailscale_devices() -> Vec<String> {
     // Add Select as the first element
     status_output.push_front("Select".to_string());
 
-    // Return as a
     status_output.to_owned().into()
 }
 
