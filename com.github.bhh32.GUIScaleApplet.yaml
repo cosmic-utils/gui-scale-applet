@@ -73,12 +73,6 @@ modules:
         tag: master
         path: libappindicator
 
-  - name: libcosmic
-    sources:
-      - type: git
-        url: https://github.com/pop-os/libcosmic.git
-        branch: master
-
   - name: gui-scale-applet
     buildsystem: simple
     build-commands:
@@ -87,6 +81,7 @@ modules:
       - mkdir -p /app/bin
       - . /usr/lib/sdk/rust-stable/enable.sh
       - export PATH=$PATH:/usr/lib/sdk/rust-stable/bin
+      - git clone --recurse-submodules --remote-submodules https://github.com/pop-os/libcosmic.git
       - cargo build --release --target-dir=/app/bin
       - install -Dm755 target/release/gui-scale-applet /app/bin/gui-scale-applet
       - install -Dm644 data/*.desktop /app/share/applications/
