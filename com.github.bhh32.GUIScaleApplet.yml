@@ -1,0 +1,31 @@
+id: com.github.bhh32.GuiScaleApplet
+runtime: org.freedesktop.Platform
+runtime-version: "23.08"
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: gui-scale-applet
+finish-args:
+  - --share=network
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --filesystem=/usr/bin/tailscale:ro
+  - --filesystem=/var/run/tailscale:rw
+
+modules:
+  - name: libappindicator
+    buildsystem: simple
+    build-commands:
+      - apt-get update && apt-get install -y libappindicator3-dev
+    sources: []
+
+  - name: gui-scale-applet
+    buildsystem: simple
+    build-commands:
+      - cargo build --release --target-dir=/app/bin
+    sources:
+      - type: git
+        url: https://github.com/cosmic-utils/gui-scale-applet.git
+        branch: flatpak
