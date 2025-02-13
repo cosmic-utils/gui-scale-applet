@@ -1,3 +1,5 @@
+use std::env;
+
 pub enum DesktopEnvironment {
     Gnome,
     Xfce,
@@ -8,7 +10,7 @@ pub enum DesktopEnvironment {
 }
 
 pub fn detect_desktop_environment() -> DesktopEnvironment {
-    if let Ok(current_desktop) = std::env::var("XDG_CURRENT_DESKTOP") {
+    if let Ok(current_desktop) = env::var("XDG_CURRENT_DESKTOP") {
         if current_desktop.contains("GNOME") {
             return DesktopEnvironment::Gnome;
         } else if current_desktop.contains("XFCE") {
