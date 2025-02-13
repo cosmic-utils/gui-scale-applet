@@ -23,7 +23,7 @@ jobs:
 
       # Step 2: Set up Flatpak builder cache
       - name: Set up Flatpak builder cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.flatpak-builder/cache
           key: flatpak-builder-${{ github.sha }}
@@ -47,7 +47,7 @@ jobs:
 
       # Step 5: Upload Flatpak bundle as an artifact
       - name: Upload Flatpak Bundle
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gui-scale-applet
           path: gui-scale-applet.flatpak
