@@ -74,8 +74,6 @@ modules:
         path: libappindicator
 
   - name: libcosmic
-    buildsystem: simple
-    build-commands:
     sources:
       - type: git
         url: https://github.com/pop-os/libcosmic.git
