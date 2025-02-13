@@ -25,6 +25,8 @@ modules:
     buildsystem: simple
     build-commands:
       - cargo build --release --target-dir=/app/bin
+      - install -Dm644 data/share/applications/*.desktop /app/share/applications/
+      - install -Dm644 data/icons/hicolor/128x128/apps/*.png /app/share/icons/scalable/apps/
     sources:
       - type: git
         url: https://github.com/cosmic-utils/gui-scale-applet.git
