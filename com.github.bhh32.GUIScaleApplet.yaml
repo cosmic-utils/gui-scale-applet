@@ -81,8 +81,6 @@ modules:
       - mkdir -p /app/bin
       - . /usr/lib/sdk/rust-stable/enable.sh
       - export PATH=$PATH:/usr/lib/sdk/rust-stable/bin
-      - cargo clean
-      - cargo update
       - cargo build --release --target-dir=/app/bin
       - install -Dm755 target/release/gui-scale-applet /app/bin/gui-scale-applet
       - install -Dm644 data/*.desktop /app/share/applications/
