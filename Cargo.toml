@@ -16,6 +16,7 @@ zbus = "5.5.0"
 git = "https://git@github.com/pop-os/libcosmic.git"
 default-features = false
 features = ["applet", "wayland", "tokio", "desktop"]
+workspace = true
 
 [features]
 xdg-portal = ["libcosmic/xdg-portal"]
