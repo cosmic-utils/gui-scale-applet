@@ -18,7 +18,7 @@ modules:
   - name: libappindicator
     buildsystem: simple
     build-commands:
-      - dpkg -i libappindicator_12.10.1+20.10.20200706.1-0_amd64.deb
+      - dpkg -i libappindicator_12.10.1+20.10.20200706.3.1_12.10.1+20.10.20200706.1-0ubuntu5_amd64.deb
     sources:
       - type: archive
         url: https://launchpad.net/ubuntu/+archive/primary/+files/libappindicator3-1_12.10.1+20.10.20200706.1-0ubuntu5_amd64.deb
