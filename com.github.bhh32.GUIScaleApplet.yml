@@ -18,8 +18,12 @@ modules:
   - name: libappindicator
     buildsystem: simple
     build-commands:
-      - apt update && apt install -y libappindicator3-dev
-    sources: []
+      - dpkg -i libappindicator_12.10.1+20.10.20200706.1-0_amd64.deb
+    sources:
+      - type: archive
+        url: https://launchpad.net/ubuntu/+archive/primary/+files/libappindicator3-1_12.10.1+20.10.202007
+06.1-0ubuntu5_amd64.deb
+        sha256: 88024131ca1c95b4ace960f662cb54cacc722225fd0ea4f69ab35a8f73cb82e2
 
   - name: gui-scale-applet
     buildsystem: simple
