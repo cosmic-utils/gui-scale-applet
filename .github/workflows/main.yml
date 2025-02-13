@@ -1,0 +1,54 @@
+name: Build Flatpak
+
+on:
+  push:
+    branches:
+      - flatpak
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  build-flatpak:
+    name: Build Flatpak
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-44
+      options: --privileged
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Flatpak builder cache
+      - name: Set up Flatpak builder cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.flatpak-builder/cache
+          key: flatpak-builder-${{ github.sha }}
+          restore-keys: |
+            flatpak-builder-
+
+      # Step 3: Prepare Flatpak build environment
+      - name: Prepare Build Files
+        run: |
+          mkdir -p build-dir/icons/scalable/apps/
+          mkdir -p build-dir/share/applications/
+          cp data/*.desktop build-dir/share/applications/
+          cp $(find data -type f -name "*.png" | tail -n 1) build-dir/icons/scalable/apps/tailscale-icon.png
+
+      # Step 4: Build the Flatpak bundle
+      - name: Build Flatpak Bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: gui-scale-applet.flatpak # Output bundle file
+          manifest-path: com.github.bhh32.GUIScaleApplet.yml # Path to your Flatpak manifest file
+
+      # Step 5: Upload Flatpak bundle as an artifact
+      - name: Upload Flatpak Bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: gui-scale-applet
+          path: gui-scale-applet.flatpak
+
