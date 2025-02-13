@@ -13,7 +13,7 @@ libappindicator = "0.9.0"
 zbus = "5.5.0"
 
 [dependencies.libcosmic]
-git = "https://github.com/pop-os/libcosmic"
+git = "https://git@github.com/pop-os/libcosmic.git"
 default-features = false
 features = ["applet", "wayland", "tokio", "desktop"]
 
