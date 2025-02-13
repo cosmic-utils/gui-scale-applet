@@ -1,3 +1,5 @@
+use libappindicator::{AppIndicator, AppIndicatorStatus};
+use zbus::Connection;
 use crate::de::*;
 
 pub(crate) fn setup_tray_icon() {
