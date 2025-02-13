@@ -73,6 +73,17 @@ modules:
         tag: master
         path: libappindicator
 
+  - name: libcosmic
+    buildsystem: simple
+    build-commands:
+      - ./usr/lib/sdk/rust-stable/enable.sh
+      - export PATH=$PATH:/usr/lib/sdk/rust-stable/bin
+      - install -Dm644 target/release/libcosmic /app/bin/libcosmic
+    sources:
+      - type: git
+        url: https://github.com/pop-os/libcosmic.git
+        branch: master
+
   - name: gui-scale-applet
     buildsystem: simple
     build-commands:
