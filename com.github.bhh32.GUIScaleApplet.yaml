@@ -76,7 +76,6 @@ modules:
   - name: libcosmic
     buildsystem: simple
     build-commands:
-      - install -Dm644 target/release/libcosmic /app/bin/libcosmic
     sources:
       - type: git
         url: https://github.com/pop-os/libcosmic.git
