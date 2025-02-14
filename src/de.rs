@@ -6,6 +6,7 @@ pub enum DesktopEnvironment {
     KDE,
     Pantheon,
     Cinnamon,
+    Cosmic,
     Unknown,
 }
 
@@ -21,6 +22,8 @@ pub fn detect_desktop_environment() -> DesktopEnvironment {
             return DesktopEnvironment::Pantheon;
         } else if current_desktop.contains("Cinnamon") {
             return DesktopEnvironment::Cinnamon;
+        } else if current_desktop.contains("COSMIC") {
+            return DesktopEnvironment::Cosmic;
         }
     }
     DesktopEnvironment::Unknown

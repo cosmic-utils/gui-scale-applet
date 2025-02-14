@@ -1,6 +1,8 @@
+use crate::de::*;
+use futures::executor;
+use gtk::prelude::*; // Add this line to include gtk module
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use zbus::Connection;
-use crate::de::*;
 
 pub(crate) fn setup_tray_icon() {
     match detect_desktop_environment() {
@@ -20,6 +22,10 @@ pub(crate) fn setup_tray_icon() {
             println!("Detected Cinnamon. Using libappindicator.");
             setup_status_notifier();
         }
+        DesktopEnvironment::Cosmic => {
+            println!("Detected COSMIC. Using status-notifier-item.");
+            setup_status_notifier();
+        }
         DesktopEnvironment::Unknown => {
             println!("Unknown desktop environment. Defaulting to libappindicator.");
             setup_libappindicator();
@@ -31,19 +37,19 @@ fn setup_libappindicator() {
     use libappindicator::{AppIndicator, AppIndicatorStatus};
     let mut indicator = AppIndicator::new("gui-scale-applet", "tailscale-icon");
     indicator.set_status(AppIndicatorStatus::Active);
-    indicator.set_menu(Some(create_menu()));
+    indicator.set_menu(&mut create_menu());
 }
 
 fn setup_status_notifier() {
     use zbus::Connection;
-    if let Ok(connection) = Connection::session() {
-        if let Err(e) = connection.call_method(
+    if let Ok(connection) = executor::block_on(Connection::session()) {
+        if let Err(e) = executor::block_on(connection.call_method(
             Some("org.kde.StatusNotifierWatcher"),
             "/StatusNotifierWatcher",
             Some("org.kde.StatusNotifierWatcher"),
             "RegisterStatusNotifierItem",
             &("com.github.bhh32.GUIScaleApplet"),
-        ) {
+        )) {
             eprintln!("Failed to register StatusNotifierItem: {}", e);
         }
     } else {

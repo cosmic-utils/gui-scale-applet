@@ -16,12 +16,13 @@ finish-args:
   - --filesystem=/var/run/tailscale:rw
 
 build-options:
+  append-path: "/usr/lib/sdk/rust-stable/bin"
+  build-args:
+    - --share=network
+    - --socket=system-bus
   env:
-    PATH: /usr/lib/sdk/rust-stable/bin:/app/bin:/usr/bin:/usr/sbin:/bin:/sbin
-    PKG_CONFIG_PATH: /app/lib/pkgconfig:/usr/lib/pkgconfig
-    CARGO_HOME: /app/cargo
-    RUSTUP_HOME: /app/rustup
-    CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+    CARGO_HOME: "/run/build/gui-scale-applet/cargo"
+    RUSTUP_HOME: "/run/build/gui-scale-applet/rustup"
 
 modules:
   - name: gnome-common
@@ -76,17 +77,21 @@ modules:
   - name: gui-scale-applet
     buildsystem: simple
     build-commands:
+      - pwd
       - mkdir -p /app/share/applications
       - mkdir -p /app/share/icons/scalable/apps
       - mkdir -p /app/bin
-      - . /usr/lib/sdk/rust-stable/enable.sh
-      - export PATH=$PATH:/usr/lib/sdk/rust-stable/bin
-      - git clone --recurse-submodules --remote-submodules https://github.com/pop-os/libcosmic.git
-      - cargo build --release --target-dir=/app/bin
+      - source /usr/lib/sdk/rust-stable/enable.sh
+      - cargo build --release --target-dir app/bin
       - install -Dm755 target/release/gui-scale-applet /app/bin/gui-scale-applet
       - install -Dm644 data/*.desktop /app/share/applications/
       - install -Dm644 data/icons/scalable/apps/*.png /app/share/icons/scalable/apps/
     sources:
+      - type: dir
+        path: ../../
+      - type: dir
+        path: /home/bryan/.cargo
+        dest: cargo
       - type: git
         url: https://github.com/cosmic-utils/gui-scale-applet.git
         branch: flatpak
