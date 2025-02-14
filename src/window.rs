@@ -27,7 +27,7 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 use url::Url;
 
-const ID: &str = "com.github.bhh32.GUIScaleApplet";
+const ID: &str = "com.bhh32.GUIScaleApplet";
 const CONFIG_VERS: u64 = 1;
 const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
 const POPUP_MAX_WIDTH: f32 = 360.0;
