@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=GUI-Scale Applet
+Name=GUI Scale Applet
 Type=Application
 Exec=gui-scale-applet
 Terminal=false
@@ -12,4 +12,4 @@ NoDisplay=true
 X-CosmicApplet=true
 X-CosmicHoverPopup=Start
 x-OverflowPriority=10
-X-Flatpak-RenamedFrom=com.github.bhh32.GuiScaleApplet.desktop
+X-Flatpak-RenamedFrom=com.bhh32.GuiScaleApplet.desktop
