@@ -1,54 +1,31 @@
-name: Build Flatpak
+name: Flatpak Builder
 
 on:
   push:
     branches:
-      - flatpak
-  pull_request:
-    branches:
       - main
-  workflow_dispatch: # Allows manual triggering of the workflow
+    pull_request:
+      branches:
+        - main
 
 jobs:
-  build-flatpak:
-    name: Build Flatpak
+  build:
     runs-on: ubuntu-latest
-    container:
-      image: bilelmoussaoui/flatpak-github-actions:gnome-44
-      options: --privileged
+
     steps:
-      # Step 1: Check out the repository
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Flatpak builder cache
-      - name: Set up Flatpak builder cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.flatpak-builder/cache
-          key: flatpak-builder-${{ github.sha }}
-          restore-keys: |
-            flatpak-builder-
-
-      # Step 3: Prepare Flatpak build environment
-      - name: Prepare Build Files
+      - name: Install Flatpak and Build Tools
         run: |
-          mkdir -p build-dir/icons/scalable/apps/
-          mkdir -p build-dir/share/applications/
-          cp data/*.desktop build-dir/share/applications/
-          cp $(find data -type f -name "*.png" | tail -n 1) build-dir/icons/scalable/apps/tailscale-icon.png
+          sudo apt update
+          sudo apt install -y flatpak flatpak-builder
 
-      # Step 4: Build the Flatpak bundle
-      - name: Build Flatpak Bundle
-        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
-        with:
-          bundle: gui-scale-applet.flatpak # Output bundle file
-          manifest-path: com.github.bhh32.GUIScaleApplet.yml # Path to your Flatpak manifest file
+      - name: Add Flathub Remote
+        run: flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      
+      - name: Build Flatpak
+        run: flatpak-builder --force-clean build-dir com.bhh32.GuiScaleApplet.yaml
 
-      # Step 5: Upload Flatpak bundle as an artifact
-      - name: Upload Flatpak Bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: gui-scale-applet
-          path: gui-scale-applet.flatpak
-
+      - name: Create Flatpak Bundle
+        run: flatpak build-bundle build-dir gui-scale-applet.flatpak com.bhh32.GuiScaleApplet

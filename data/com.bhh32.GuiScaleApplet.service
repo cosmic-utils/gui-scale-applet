@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=com.bhh32.GuiScaleApplet
+Exec=/app/bin/gui-scale-applet
