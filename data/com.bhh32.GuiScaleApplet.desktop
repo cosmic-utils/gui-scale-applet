@@ -1,15 +1,16 @@
 [Desktop Entry]
 Name=GUI Scale Applet
 Type=Application
-Exec=gui-scale-applet
+Exec=/app/bin/gui-scale-applet
 Terminal=false
-Categories=COSMIC;Utility;System;TrayIcon;
-Keywords=COSMIC;Iced;
-Icon=gui-scale-applet
+Categories=TrayIcon
+Keywords=COSMIC;Iced;VPN
+Icon=com.bhh32.GuiScaleApplet
 StartupNotify=true
 DBusActivatable=true
 NoDisplay=true
+OnlyShowIn=COSMIC;GNOME;KDE;Pantheon;Cinnamon;XFCE;
 X-CosmicApplet=true
 X-CosmicHoverPopup=Start
-x-OverflowPriority=10
+X-OverflowPriority=normal
 X-Flatpak-RenamedFrom=com.bhh32.GuiScaleApplet.desktop
