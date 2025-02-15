@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
     pull_request:
       branches:
         - main
@@ -25,7 +27,36 @@ jobs:
         run: flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
       
       - name: Build Flatpak
-        run: flatpak-builder --force-clean build-dir com.bhh32.GuiScaleApplet.yaml
+        run: flatpak-builder --force-clean build-dir --repo=repo com.bhh32.GuiScaleApplet.yaml
 
       - name: Create Flatpak Bundle
-        run: flatpak build-bundle build-dir gui-scale-applet.flatpak com.bhh32.GuiScaleApplet
+        run: flatpak build-bundle repo gui-scale-applet.flatpak com.bhh32.GuiScaleApplet
+      
+      - name: Upload Flatpak Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-scale-applet
+          path: gui-scale-applet.flatpak
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Flatpak Bundle Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gui-scale-applet
+          path: .
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            Automatic release from commit ${{ github.sha }}.
+          files: |
+            gui-scale-applet.flatpak

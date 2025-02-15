@@ -25,17 +25,17 @@ pub fn get_tailscale_ip() -> String {
 pub fn get_tailscale_con_status() -> bool {
     let con_cmd = Command::new("tailscale")
         .args(["debug", "prefs"])
-        .stdout(Stdio::piped())
-        .spawn();
+        .output()
+        .unwrap();
 
-    let grep_cmd = Command::new("grep")
-        .arg("WantRunning")
-        .stdin(con_cmd.unwrap().stdout.unwrap())
-        .output();
+    let con_status = String::from_utf8(con_cmd.unwrap().stdout).unwrap();
 
-    let con_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
+    let con_checker: Vec<&str> = con_status
+        .lines()
+        .filter(|line| line.contains("WantRunning") && line.contains("true"))
+        .collect();
 
-    con_status.contains("true")
+    !con_checker.is_empty()
 }
 
 pub fn get_tailscale_devices() -> Vec<String> {
@@ -75,34 +75,33 @@ pub fn get_tailscale_devices() -> Vec<String> {
 pub fn get_tailscale_ssh_status() -> bool {
     let ssh_cmd = Command::new("tailscale")
         .args(["debug", "prefs"])
-        .stdout(Stdio::piped())
-        .spawn();
+        .output()
+        .unwrap();
 
-    let grep_cmd = Command::new("grep")
-        .arg("RunSSH")
-        .stdin(ssh_cmd.unwrap().stdout.unwrap())
-        .output();
+    let ssh_status = String::from_utf8(ssh_cmd.unwrap().stdout).unwrap();
 
-    let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
+    let ssh_checker: Vec<&str> = ssh_status
+        .lines()
+        .filter(|line| line.contains("RunSSH") && line.contains("true"))
+        .collect();
 
-    ssh_status.contains("true")
+    !ssh_checker.is_empty()
 }
 
 /// Get the current status of the accept-routes enablement
 pub fn get_tailscale_routes_status() -> bool {
-    let ssh_cmd = Command::new("tailscale")
+    let routes_cmd = Command::new("tailscale")
         .args(["debug", "prefs"])
-        .stdout(Stdio::piped())
-        .spawn();
+        .output()
+        .unwrap();
 
-    let grep_cmd = Command::new("grep")
-        .arg("RouteAll")
-        .stdin(ssh_cmd.unwrap().stdout.unwrap())
-        .output();
+    let status = String::from_utf8(routes_cmd.unwrap().stdout).unwrap();
+    let route_checker: Vec<&str> = status
+        .lines()
+        .filter(|line| line.contains("RouteAll") && line.contains("true"))
+        .collect();
 
-    let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
-
-    ssh_status.contains("true")
+    !route_checker.is_empty()
 }
 
 /// Get available devices
