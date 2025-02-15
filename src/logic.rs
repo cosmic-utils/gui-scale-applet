@@ -28,7 +28,7 @@ pub fn get_tailscale_con_status() -> bool {
         .output()
         .unwrap();
 
-    let con_status = String::from_utf8(con_cmd.unwrap().stdout).unwrap();
+    let con_status = String::from_utf8(con_cmd.stdout).unwrap();
 
     let con_checker: Vec<&str> = con_status
         .lines()
@@ -78,7 +78,7 @@ pub fn get_tailscale_ssh_status() -> bool {
         .output()
         .unwrap();
 
-    let ssh_status = String::from_utf8(ssh_cmd.unwrap().stdout).unwrap();
+    let ssh_status = String::from_utf8(ssh_cmd.stdout).unwrap();
 
     let ssh_checker: Vec<&str> = ssh_status
         .lines()
@@ -95,7 +95,7 @@ pub fn get_tailscale_routes_status() -> bool {
         .output()
         .unwrap();
 
-    let status = String::from_utf8(routes_cmd.unwrap().stdout).unwrap();
+    let status = String::from_utf8(routes_cmd.stdout).unwrap();
     let route_checker: Vec<&str> = status
         .lines()
         .filter(|line| line.contains("RouteAll") && line.contains("true"))
