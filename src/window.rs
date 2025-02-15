@@ -448,7 +448,7 @@ impl cosmic::Application for Window {
         self.core
             .applet
             // Set the icon button to the tailscale-icon defined during installation.
-            .icon_button("tailscale-icon")
+            .icon_button("com.bhh32.GuiScaleApplet")
             .on_press(Message::TogglePopup)
             .into()
     }
