@@ -58,6 +58,7 @@ fn setup_status_notifier() {
 }
 
 pub(crate) fn create_menu() -> gtk::Menu {
+    let _ = gtk::init().expect("Failed to initialize GTK.");
     let menu = gtk::Menu::new();
     let quit_item = gtk::MenuItem::with_label("Quit");
     quit_item.connect_activate(|_| std::process::exit(0));
