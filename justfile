@@ -19,8 +19,9 @@ metainfo := APPID + '.metainfo.xml'
 metainfo-src := 'data' / metainfo
 metainfo-dst := clean(rootdir / prefix) / 'share' / 'metainfo' / metainfo
 
-icons-src := 'data' / 'icons' / 'scalable' / 'apps'
-icons-dst := clean(rootdir / prefix) / 'share' / 'icons' / 'hicolor' / 'scalable' / 'status'
+icon := 'tailscale-icon.png'
+icons-src := 'data' / 'icons' / 'scalable' / 'apps' / icon
+icons-dst := clean(rootdir / prefix) / 'share' / 'icons' / 'hicolor' / 'scalable' / 'status' / icon
 
 # Default recipe which runs 'just build-release'
 default: build-release
@@ -65,7 +66,7 @@ run *args:
 install:
     install -Dm0755 {{bin-src}} {{bin-dst}}
     install -Dm0644 {{desktop-src}} {{desktop-dst}}
-    install -Dm0644 "{{icons-src}}/tailscale-icon.png" {{icons-dst}}
+    install -Dm0644 {{icons-src}} {{icons-dst}}
     #cp "{{base-dir}}/bin/cosmic-applets" "{{base-dir}}/bin/cosmic-applets.bak"
     #ln -sf "{{base-dir}}/bin/cosmic-applets" {{bin-dst}} 
 
