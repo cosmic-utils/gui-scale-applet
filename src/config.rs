@@ -27,13 +27,10 @@ pub fn load_config<T>(key: &str, config_vers: u64) -> (Option<T>, String)
 where
     T: DeserializeOwned,
 {
-    let config = match Config::new("com.github.bhh32.GUIScaleApplet", config_vers) {
-        Ok(config) => config,
-        Err(e) => {
-            eprintln!("Loading config file had an error: {e}");
-            Config::system("com.github.bhh32.GUIScaleApplet", 1).unwrap()
-        }
-    };
+    let config = Config::new("com.github.bhh32.GUIScaleApplet", config_vers).unwrap_or_else(|e| {
+        eprintln!("Loading config file had an error: {e}");
+        Config::system("com.github.bhh32.GUIScaleApplet", 1).unwrap()
+    });
 
     match config.get(key) {
         Ok(value) => (Some(value), "".to_owned()),

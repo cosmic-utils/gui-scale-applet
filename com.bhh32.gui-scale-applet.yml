@@ -1,0 +1,46 @@
+app-id: com.bhh32.gui-scale-applet
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: gui-scale-applet
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/gui-scale-applet/cargo
+    RUST_BACKTRACE: 1
+  build-args:
+    - --share=network
+finish-args:
+  # X11/Wayland access
+  - --socket=wayland
+  - --socket=fallback-x11
+  # Network access needed for Tailscale
+  - --share=network
+  # Access to Tailscale socket
+  - --filesystem=/var/run/tailscale:ro
+  #- --filesystem=host-os
+  # D-Bus communication
+  - --system-talk-name=org.freedesktop.NetworkManager
+  - --talk-name=org.freedesktop.DBus
+  - --system-talk-name=com.tailscale.socketserver
+  - --talk-name=org.freedesktop.Flatpak
+modules:
+  - name: gui-scale-applet
+    buildsystem: simple
+    build-commands:
+      # Compile and install gui-scale-applet
+      - . /usr/lib/sdk/rust-stable/enable.sh
+      - cargo build --release --locked
+      - install -Dm755 target/release/gui-scale-applet -t ${FLATPAK_DEST}/bin/
+      # Install desktop and metainfo files
+      - install -Dm644 data/com.bhh32.gui-scale-applet.desktop -t ${FLATPAK_DEST}/share/applications/
+      - install -Dm644 data/com.bhh32.gui-scale-applet.metainfo.xml -t ${FLATPAK_DEST}/share/metainfo/
+      # Install icon
+      - install -Dm644 data/icons/scalable/apps/com.bhh32.gui-scale-applet.png -t ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/
+    sources:
+      - type: dir
+        path: .
+      - type: dir

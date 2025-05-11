@@ -94,7 +94,7 @@ impl cosmic::Application for Window {
         &mut self.core
     }
 
-    fn init(core: Core, _flags: Self::Flags) -> (Window, Task<cosmic::app::Message<Message>>) {
+    fn init(core: Core, _flags: Self::Flags) -> (Window, Task<cosmic::Action<Message>>) {
         // Get the SSH status from the Tailscale CLI
         let ssh = get_tailscale_ssh_status();
         // Get the Accept Routes status from the Tailscale CLI
@@ -170,7 +170,7 @@ impl cosmic::Application for Window {
     }
 
     // Libcosmic's update function
-    fn update(&mut self, message: Self::Message) -> Task<cosmic::app::Message<Self::Message>> {
+    fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
         match message {
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
@@ -309,9 +309,10 @@ impl cosmic::Application for Window {
                 println!("tx_status: {tx_status:?}");
                 // Once the files are sent:
                 // 1. Set the send file status to the transfer status
-                self.send_file_status = match tx_status {
-                    Some(err_val) => err_val,
-                    None => String::from("File(s) sent successfully!"),
+                self.send_file_status = if let Some(err_val) = tx_status {
+                    err_val
+                } else {
+                    String::from("File(s) sent successfully!")
                 };
 
                 if !self.send_file_status.is_empty() {
@@ -379,12 +380,11 @@ impl cosmic::Application for Window {
                     update_config(
                         self.config.clone(),
                         "exit-node",
-                        match self.sel_exit_node_idx {
-                            Some(idx) => idx,
-                            None => {
-                                eprintln!("Could not update the config file!");
-                                0
-                            }
+                        if let Some(idx) = self.sel_exit_node_idx {
+                            idx
+                        } else {
+                            eprintln!("Could not update the config file!");
+                            0
                         },
                     );
                 }
@@ -407,7 +407,9 @@ impl cosmic::Application for Window {
                     self.is_exit_node = is_exit_node;
 
                     // Enable/disable this host as an exit node
-                    enable_exit_node(self.is_exit_node);
+                    if let Err(e) = enable_exit_node(self.is_exit_node) {
+                        eprintln!("{e}");
+                    }
 
                     self.avail_exit_nodes = get_avail_exit_nodes();
                 }
@@ -417,25 +419,30 @@ impl cosmic::Application for Window {
                 if !self.recieve_file_status.is_empty() {
                     // Done in a separate thread as to not block the current thread.
                     return cosmic::task::future(async move {
-                        Message::FilesRecieved(match clear_status(STATUS_CLEAR_TIME).await {
-                            Some(bad_value) => format!("Something went wrong and clear status returned a value: {bad_value}"),
-                            None => String::new(),
-                        })
+                        Message::FilesRecieved(
+                            if let Some(bad_value) = clear_status(STATUS_CLEAR_TIME).await {
+                                format!("Something went wrong and clear status returned a value: {bad_value}")
+                            } else {
+                                String::new()
+                            },
+                        )
                     });
                 // Clear the send files status in the status clear time
                 } else if !self.send_file_status.is_empty() || self.files_sent {
-                    println!("Entered clear tail drop status message send");
-                    // 4. Reset the selected_device_idx back to 0 (Selected)
+                    // Reset the selected_device_idx back to 0 (Selected)
                     self.selected_device_idx = Some(0);
-                    // 5. Reset the selected_device back to Selected
+                    // Reset the selected_device back to Selected
                     self.selected_device = self.device_options[0].clone();
 
                     // Done in a separate thread as to not block the current thread.
                     return cosmic::task::future(async move {
-                        Message::FilesSent(match clear_status(STATUS_CLEAR_TIME).await {
-                            Some(bad_value) => Some(format!("Something went wrong and clear status returned a value: {bad_value}")),
-                            None => Some(String::new()),
-                        })
+                        Message::FilesSent(
+                            if let Some(bad_value) = clear_status(STATUS_CLEAR_TIME).await {
+                                Some(format!("Something went wrong and clear status returned a value: {bad_value}"))
+                            } else {
+                                Some(String::new())
+                            },
+                        )
                     });
                 }
             }
@@ -447,8 +454,8 @@ impl cosmic::Application for Window {
     fn view(&self) -> Element<Self::Message> {
         self.core
             .applet
-            // Set the icon button to the tailscale-icon defined during installation.
-            .icon_button("tailscale-icon")
+            // Set the icon button to the Tailscale icon (labeled as flatpak name) defined during installation.
+            .icon_button("com.bhh32.gui-scale-applet")
             .on_press(Message::TogglePopup)
             .into()
     }
@@ -532,7 +539,7 @@ impl cosmic::Application for Window {
                     })
                     .align_x(Horizontal::Left)
                     .padding(5),
-                    horizontal_space().width(100),
+                    horizontal_space().width(Length::Fill),
                     column!(button::standard("Recieve File(s)")
                         .on_press(Message::RecieveFiles)
                         .width(140)

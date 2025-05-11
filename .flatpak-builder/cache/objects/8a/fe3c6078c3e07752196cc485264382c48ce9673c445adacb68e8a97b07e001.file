@@ -1,0 +1,69 @@
+{
+  "id" : "com.bhh32.gui-scale-applet",
+  "runtime" : "org.freedesktop.Platform",
+  "runtime-version" : "24.08",
+  "runtime-commit" : "69f5ca3180618e77eb1264af2b67048fc1c6a2884ee403c76b24b0e15bfc16c9",
+  "sdk" : "org.freedesktop.Sdk",
+  "sdk-commit" : "d181b96848f53d6fb748322c4166cfa4880062e1b28ee0504ab5eabaa84bba9c",
+  "build-options" : {
+    "build-args" : [
+      "--share=network"
+    ],
+    "append-path" : "/usr/lib/sdk/rust-stable/bin"
+  },
+  "command" : "gui-scale-applet",
+  "modules" : [
+    {
+      "name" : "gui-scale-applet",
+      "buildsystem" : "simple",
+      "sources" : [
+        {
+          "path" : ".",
+          "type" : "dir"
+        },
+        {
+          "dest" : ".cargo",
+          "path" : "./.cargo",
+          "type" : "dir"
+        },
+        {
+          "dest" : "${FLATPAK_DEST}/share/applications",
+          "path" : "./data/com.bhh32.gui-scale-applet.desktop",
+          "type" : "file"
+        },
+        {
+          "dest" : "${FLATPAK_DEST}/share/metainfo",
+          "path" : "./data/com.bhh32.gui-scale-applet.metainfo.xml",
+          "type" : "file"
+        },
+        {
+          "dest" : "${FLATPAK_DEST}/share/icons/hicolor/scalable/apps",
+          "path" : "./data/icons/scalable/apps/com.bhh32.gui-scale-applet.png",
+          "type" : "file"
+        }
+      ],
+      "build-commands" : [
+        ". /usr/lib/sdk/rust-stable/enable.sh",
+        "cargo build --release --locked",
+        "install -Dm755 target/release/gui-scale-applet -t ${FLATPAK_DEST}/bin/",
+        "install -Dm644 data/com.bhh32.gui-scale-applet.desktop -t ${FLATPAK_DEST}/share/applications/",
+        "install -Dm644 data/com.bhh32.gui-scale-applet.metainfo.xml -t ${FLATPAK_DEST}/share/metainfo/",
+        "install -Dm644 data/icons/scalable/apps/com.bhh32.gui-scale-applet.png -t ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/"
+      ]
+    }
+  ],
+  "sdk-extensions" : [
+    "org.freedesktop.Sdk.Extension.rust-stable"
+  ],
+  "finish-args" : [
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--share=network",
+    "--filesystem=/var/run/tailscale:ro",
+    "--system-talk-name=org.freedesktop.NetworkManager",
+    "--talk-name=org.freedesktop.DBus",
+    "--system-talk-name=com.tailscale.socketserver",
+    "--talk-name=org.freedesktop.Flatpak"
+  ],
+  "source-date-epoch" : 1746942997
+}

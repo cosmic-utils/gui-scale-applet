@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>com.bhh32.gui-scale-applet</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>BSD-3.0-only</project_license>
+    <project_group>COSMIC</project_group>
+    <developer_name>Bryan Hyland</developer_name>
+    <update_contact>bryan.hyland32@gmail.com</update_contact>
+    <url type="website">https://bhh32.com</url>
+    <url type="donation">https://buymeacoffee.com/bhh32</url>
+    <name>GUI-Scale Applet</name>
+    <summary>Linux GUI Wrapper Applet for the Tailscale CLI</summary>
+    <description>
+        <p>Linux GUI wrapper applet for the Tailscale CLI</p>
+        <p>Features:</p>
+        <ul>
+            <li>View Tailscale connection status</li>
+            <li>Enable/disable your Tailscale connection</li>
+            <li>Configure Tailscale SSH and routing settings</li>
+            <li>Send and receive files via Tailscale Taildrop</li>
+            <li>Manage exit nodes</li>
+        </ul>
+        <p>
+            The user must first run the following command before the application will run as intended:
+            <pre><code lang="bash">sudo tailscale up --operator=$USER</code></pre>
+        </p>
+    </description>
+    <launchable type="desktop-id">com.bhh32.gui-scale-applet.desktop</launchable>
+    <icon type="stock">com.bhh32.gui-scale-applet</icon>
+    <screenshots>
+        <screenshot type="default">
+            <image>https://github.com/cosmic-utils/gui-scale-applet/raw/main/screenshots/gui-scale-applet-open.png</image>
+            <caption>Main View</caption>
+        </screenshot>
+        <screenshot>
+            <image>https://github.com/cosmic-utils/gui-scale-applet/raw/main/screenshots/gui-scale-panel.png</image>
+            <caption>Panel View</caption>
+        </screenshot>
+    </screenshots>
+    <url type="homepage">https://github.com/cosmic-utils/gui-scale-applet</url>
+    <url type="bugtracker">https://github.com/cosmic-utils/gui-scale-applet/issues</url>
+    <provides>
+        <binaries>
+            <binary>gui-scale-applet</binary>
+        </binaries>
+    </provides>
+    <content_rating type="oars-1.1" />
+    <releases>
+        <release version="2.0.0" date="2024-11-03">
+            <description>
+                <p>Added exit node capabilities</p>
+            </description>
+        </release>
+    </releases>
+</component>
