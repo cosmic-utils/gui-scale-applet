@@ -513,13 +513,13 @@ impl cosmic::Application for Window {
                         self.selected_device_idx,
                         Message::DeviceSelected
                     )
-                    .width(140),)
+                    .width(140))
                     .align_x(Horizontal::Left)
                     .padding(5),
                     horizontal_space().width(100),
                     column!(button::standard("Select File(s)")
                         .on_press(Message::ChooseFiles)
-                        .width(140)
+                        .width(120)
                         .tooltip("Select the file(s) to send."))
                     .align_x(Horizontal::Right)
                     .padding(5)

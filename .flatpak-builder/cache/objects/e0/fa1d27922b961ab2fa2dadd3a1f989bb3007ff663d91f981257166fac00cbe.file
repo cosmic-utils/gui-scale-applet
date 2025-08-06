@@ -1,5 +1,0 @@
-[Runtime]
-name=com.bhh32.gui_scale_applet.Debug
-
-[ExtensionOf]
-ref=app/com.bhh32.gui-scale-applet/x86_64/master

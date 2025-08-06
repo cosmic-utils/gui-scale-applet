@@ -17,23 +17,29 @@ finish-args:
   # X11/Wayland access
   - --socket=wayland
   - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
   # Network access needed for Tailscale
   - --share=network
   # Access to Tailscale socket
   - --filesystem=/var/run/tailscale:ro
-  #- --filesystem=host-os
+  - --filesystem=/sys/class/net:ro
+  - --filesystem=host-os
+  - --filesystem=
   # D-Bus communication
   - --system-talk-name=org.freedesktop.NetworkManager
-  - --talk-name=org.freedesktop.DBus
+  #- --talk-name=org.freedesktop.DBus
   - --system-talk-name=com.tailscale.socketserver
   - --talk-name=org.freedesktop.Flatpak
+  - --talk-name=org.freedesktop.portal.FileChooser
 modules:
   - name: gui-scale-applet
     buildsystem: simple
     build-commands:
       # Compile and install gui-scale-applet
       - . /usr/lib/sdk/rust-stable/enable.sh
-      - cargo build --release --locked
+      - cargo fetch --manifest-path Cargo.toml --verbose
+      - cargo build --release --verbose
       - install -Dm755 target/release/gui-scale-applet -t ${FLATPAK_DEST}/bin/
       # Install desktop and metainfo files
       - install -Dm644 data/com.bhh32.gui-scale-applet.desktop -t ${FLATPAK_DEST}/share/applications/
@@ -41,6 +47,6 @@ modules:
       # Install icon
       - install -Dm644 data/icons/scalable/apps/com.bhh32.gui-scale-applet.png -t ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/
     sources:
-      - type: dir
-        path: .
-      - type: dir
+      - type: git
+        url: https://github.com/cosmic-utils/gui-scale-applet.git
+        commit: 1ffc371e35066bafcee3ce0450e826ab3e42324c
