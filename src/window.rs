@@ -516,10 +516,10 @@ impl cosmic::Application for Window {
                     .width(140))
                     .align_x(Horizontal::Left)
                     .padding(5),
-                    horizontal_space().width(100),
+                    horizontal_space().width(Length::Fill),
                     column!(button::standard("Select File(s)")
                         .on_press(Message::ChooseFiles)
-                        .width(120)
+                        .width(140)
                         .tooltip("Select the file(s) to send."))
                     .align_x(Horizontal::Right)
                     .padding(5)
