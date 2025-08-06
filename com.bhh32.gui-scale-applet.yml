@@ -25,13 +25,14 @@ finish-args:
   - --filesystem=/var/run/tailscale:ro
   - --filesystem=/sys/class/net:ro
   - --filesystem=host-os
-  - --filesystem=
+  - --filesystem=home
   # D-Bus communication
   - --system-talk-name=org.freedesktop.NetworkManager
   #- --talk-name=org.freedesktop.DBus
   - --system-talk-name=com.tailscale.socketserver
   - --talk-name=org.freedesktop.Flatpak
-  - --talk-name=org.freedesktop.portal.FileChooser
+  #- --talk-name=org.freedesktop.portal.FileChooser
+  - --talk-name=org.freedesktop.Desktop
 modules:
   - name: gui-scale-applet
     buildsystem: simple
@@ -49,4 +50,4 @@ modules:
     sources:
       - type: git
         url: https://github.com/cosmic-utils/gui-scale-applet.git
-        commit: 1ffc371e35066bafcee3ce0450e826ab3e42324c
+        branch: main
