@@ -77,34 +77,43 @@ pub fn get_tailscale_devices() -> Vec<String> {
 pub fn get_tailscale_ssh_status() -> bool {
     let ssh_cmd = Command::new("flatpak")
         .args(["spawn", "--host", "tailscale", "debug", "prefs"])
-        .stdout(Stdio::piped())
-        .spawn();
+        //.stdout(Stdio::piped())
+        .output()
+        .expect("Failed to execute tailscale debug prefs command");
 
-    let grep_cmd = Command::new("flatpak")
-        .args(["spawn", "--host", "grep", "RunSSH"])
-        .stdin(ssh_cmd.unwrap().stdout.unwrap())
-        .output();
+    let grep_cmd = String::from_utf8(ssh_cmd.stdout).unwrap();
 
-    let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
-
-    ssh_status.contains("true")
+    if let Some(ssh_status) = grep_cmd
+        .lines()
+        .into_iter()
+        .filter(|line| line.contains("RunSSH"))
+        .next()
+    {
+        ssh_status.contains("true")
+    } else {
+        false
+    }
 }
 
 /// Get the current status of the accept-routes enablement
 pub fn get_tailscale_routes_status() -> bool {
     let ssh_cmd = Command::new("flatpak")
         .args(["spawn", "--host", "tailscale", "debug", "prefs"])
-        .stdout(Stdio::piped())
-        .spawn();
+        .output()
+        .expect("Failed to execute tailscale debug prefs command");
 
-    let grep_cmd = Command::new("flatpak")
-        .args(["spawn", "--host", "grep", "RouteAll"])
-        .stdin(ssh_cmd.unwrap().stdout.unwrap())
-        .output();
+    let grep_cmd = String::from_utf8(ssh_cmd.stdout).unwrap();
 
-    let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
-
-    ssh_status.contains("true")
+    if let Some(ssh_status) = grep_cmd
+        .lines()
+        .into_iter()
+        .filter(|line| line.contains("AcceptRoutes"))
+        .next()
+    {
+        ssh_status.contains("true")
+    } else {
+        false
+    }
 }
 
 /// Get available devices
@@ -309,21 +318,20 @@ pub fn enable_exit_node(is_exit_node: bool) -> Result<(), String> {
 pub fn get_is_exit_node() -> bool {
     let is_exit_node_cmd = Command::new("flatpak")
         .args(["spawn", "--host", "tailscale", "debug", "prefs"])
-        .stdout(Stdio::piped())
-        .spawn();
+        .output()
+        .expect("Failed to run tailscale debug prefs");
 
-    let grep_cmd = Command::new("flatpak")
-        .args(["spawn", "--host", "grep", "-i", "advertiseroutes"])
-        .stdin(is_exit_node_cmd.unwrap().stdout.unwrap())
-        .output();
+    let grep_cmd = String::from_utf8(is_exit_node_cmd.stdout).unwrap();
 
-    let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
-
-    if ssh_status.contains("null") {
-        return false;
+    if let Some(advert_routes_status) = grep_cmd
+        .lines()
+        .filter(|line| line.to_lowercase().contains("advertiseroutes"))
+        .next()
+    {
+        advert_routes_status.contains("true")
+    } else {
+        false
     }
-
-    true
 }
 
 /// Add/remove exit node's access to the host's local LAN
