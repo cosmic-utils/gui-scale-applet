@@ -12,6 +12,7 @@ target/
 .flatpak-builder/
 .flatpak-builder/*
 repo/
+build-dir/
 
 # Archives
 *.tar*

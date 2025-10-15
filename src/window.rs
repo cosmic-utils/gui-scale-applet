@@ -451,7 +451,7 @@ impl cosmic::Application for Window {
     }
 
     // Libcosmic's view function
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self) -> Element<'_, Self::Message> {
         self.core
             .applet
             // Set the icon button to the Tailscale icon (labeled as flatpak name) defined during installation.
@@ -461,7 +461,7 @@ impl cosmic::Application for Window {
     }
 
     // Libcosmic's applet view_window function
-    fn view_window(&self, _id: Id) -> Element<Self::Message> {
+    fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
         // Normal status elements
         let ip = get_tailscale_ip();
         let conn_status = get_tailscale_con_status();

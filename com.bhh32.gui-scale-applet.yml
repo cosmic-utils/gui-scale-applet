@@ -9,8 +9,8 @@ command: gui-scale-applet
 build-options:
   append-path: /usr/lib/sdk/rust-stable/bin
   env:
-    CARGO_HOME: /run/build/gui-scale-applet/cargo
-    RUST_BACKTRACE: 1
+    - CARGO_HOME: /run/build/gui-scale-applet/cargo
+    - RUST_BACKTRACE: 1
   build-args:
     - --share=network
 finish-args:

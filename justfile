@@ -1,25 +1,18 @@
 name := 'gui-scale-applet'
 export APPID := 'com.github.bhh32.GUIScaleApplet'
-
 rootdir := ''
 prefix := '/usr'
-
 base-dir := absolute_path(clean(rootdir / prefix))
-
 export INSTALL_DIR := base-dir / 'share'
-
 bin-src := 'target' / 'release' / name
 bin-dst := base-dir / 'bin' / name
-
-desktop := APPID + '.desktop'
+desktop := 'com.bhh32.gui-scale-applet.desktop'
 desktop-src := 'data' / desktop
 desktop-dst := clean(rootdir / prefix) / 'share' / 'applications' / desktop
-
-metainfo := APPID + '.metainfo.xml'
+metainfo := 'com.bhh32.gui-scale-applet.metainfo.xml'
 metainfo-src := 'data' / metainfo
 metainfo-dst := clean(rootdir / prefix) / 'share' / 'metainfo' / metainfo
-
-icon := 'tailscale-icon.png'
+icon := 'com.bhh32.gui-scale-applet.png'
 icons-src := 'data' / 'icons' / 'scalable' / 'apps' / icon
 icons-dst := clean(rootdir / prefix) / 'share' / 'icons' / 'hicolor' / 'scalable' / 'status' / icon
 
@@ -39,7 +32,7 @@ clean-dist: clean clean-vendor
 
 # Compiles with debug profile
 build-debug *args:
-    cargo build {{args}}
+    cargo build {{ args }}
 
 # Compiles with release profile
 build-release *args: (build-debug '--release' args)
@@ -49,33 +42,30 @@ build-vendored *args: vendor-extract (build-release '--frozen --offline' args)
 
 # Runs clippy check
 check *args:
-    cargo clippy --all-features {{args}} -- -W clippy::pedantic
+    cargo clippy --all-features {{ args }} -- -W clippy::pedantic
 
 # Runs a clippy check with JSON message format
 check-json: (check '--message-format=json')
 
 dev *args:
     cargo fmt
-    just run {{args}}
+    just run {{ args }}
 
 # Run with debug logs
 run *args:
-    env RUST_LOG=cosmic_tasks=info RUST_BACKTRACE=full cargo run --release {{args}}
+    env RUST_LOG=cosmic_tasks=info RUST_BACKTRACE=full cargo run --release {{ args }}
 
 # Installs files
-install:
-    install -Dm0755 {{bin-src}} {{bin-dst}}
-    install -Dm0644 {{desktop-src}} {{desktop-dst}}
-    install -Dm0644 {{icons-src}} {{icons-dst}}
-    #cp "{{base-dir}}/bin/cosmic-applets" "{{base-dir}}/bin/cosmic-applets.bak"
-    #ln -sf "{{base-dir}}/bin/cosmic-applets" {{bin-dst}} 
+install: build-release
+    sudo install -Dm0755 {{ bin-src }} {{ bin-dst }}
+    sudo install -Dm0644 {{ desktop-src }} {{ desktop-dst }}
+    sudo install -Dm0644 {{ icons-src }} {{ icons-dst }}
 
 # Uninstalls installed files
 uninstall:
-    rm {{bin-dst}}
-    rm {{desktop-dst}}
-    rm "{{icons-dst}}/tailscale-icon.png"
-    #mv "{{base-dir}}/bin/cosmic-applets.bak" "{{base-dir}}/bin/cosmic-applets"
+    sudo rm {{ bin-dst }}
+    sudo rm {{ desktop-dst }}
+    sudo rm {{ icons-dst }}
 
 # Vendor dependencies only
 vendor:
