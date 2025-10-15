@@ -13,7 +13,7 @@ use cosmic::iced::{
     platform_specific::shell::commands::popup::{destroy_popup, get_popup},
     widget::{column, horizontal_space, row},
     window::Id,
-    Alignment, Length, Limits, Task,
+    Alignment, Length, Limits,
 };
 use cosmic::iced_runtime::core::window;
 use cosmic::iced_widget::Row;
@@ -22,7 +22,7 @@ use cosmic::widget::{
     settings::{self},
     text, toggler,
 };
-use cosmic::Element;
+use cosmic::{Action, Element, Task};
 use std::fmt::Debug;
 use std::path::PathBuf;
 use url::Url;
@@ -30,7 +30,7 @@ use url::Url;
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
 const CONFIG_VERS: u64 = 1;
 const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
-const POPUP_MAX_WIDTH: f32 = 360.0;
+const POPUP_MAX_WIDTH: f32 = 400.0;
 const POPUP_MIN_WIDTH: f32 = 300.0;
 const POPUP_MAX_HEIGHT: f32 = 1080.0;
 const POPUP_MIN_HEIGHT: f32 = 200.0;
@@ -94,7 +94,7 @@ impl cosmic::Application for Window {
         &mut self.core
     }
 
-    fn init(core: Core, _flags: Self::Flags) -> (Window, Task<cosmic::app::Message<Message>>) {
+    fn init(core: Core, _flags: Self::Flags) -> (Window, Task<Action<Self::Message>>) {
         // Get the SSH status from the Tailscale CLI
         let ssh = get_tailscale_ssh_status();
         // Get the Accept Routes status from the Tailscale CLI
@@ -170,7 +170,7 @@ impl cosmic::Application for Window {
     }
 
     // Libcosmic's update function
-    fn update(&mut self, message: Self::Message) -> Task<cosmic::app::Message<Self::Message>> {
+    fn update(&mut self, message: Self::Message) -> Task<Action<Self::Message>> {
         match message {
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
@@ -444,7 +444,7 @@ impl cosmic::Application for Window {
     }
 
     // Libcosmic's view function
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self) -> Element<'_, Self::Message> {
         self.core
             .applet
             // Set the icon button to the tailscale-icon defined during installation.
@@ -454,7 +454,7 @@ impl cosmic::Application for Window {
     }
 
     // Libcosmic's applet view_window function
-    fn view_window(&self, _id: Id) -> Element<Self::Message> {
+    fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
         // Normal status elements
         let ip = get_tailscale_ip();
         let conn_status = get_tailscale_con_status();
