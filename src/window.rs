@@ -30,7 +30,7 @@ use url::Url;
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
 const CONFIG_VERS: u64 = 1;
 const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
-const POPUP_MAX_WIDTH: f32 = 360.0;
+const POPUP_MAX_WIDTH: f32 = 380.0;
 const POPUP_MIN_WIDTH: f32 = 300.0;
 const POPUP_MAX_HEIGHT: f32 = 1080.0;
 const POPUP_MIN_HEIGHT: f32 = 200.0;
