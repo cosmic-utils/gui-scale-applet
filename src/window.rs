@@ -30,8 +30,8 @@ use url::Url;
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
 const CONFIG_VERS: u64 = 1;
 const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
-const POPUP_MAX_WIDTH: f32 = 400.0;
-const POPUP_MIN_WIDTH: f32 = 300.0;
+const POPUP_MAX_WIDTH: f32 = 720.0;
+const POPUP_MIN_WIDTH: f32 = 640.0;
 const POPUP_MAX_HEIGHT: f32 = 1080.0;
 const POPUP_MIN_HEIGHT: f32 = 200.0;
 const STATUS_CLEAR_TIME: u64 = 5;
@@ -506,13 +506,13 @@ impl cosmic::Application for Window {
                         self.selected_device_idx,
                         Message::DeviceSelected
                     )
-                    .width(140),)
+                    .width(110),)
                     .align_x(Horizontal::Left)
                     .padding(5),
-                    horizontal_space().width(100),
+                    horizontal_space().width(Length::Fill),
                     column!(button::standard("Select File(s)")
                         .on_press(Message::ChooseFiles)
-                        .width(140)
+                        .width(220)
                         .tooltip("Select the file(s) to send."))
                     .align_x(Horizontal::Right)
                     .padding(5)
@@ -523,19 +523,19 @@ impl cosmic::Application for Window {
                     column!(if !self.send_files.is_empty() {
                         button::standard("Send File(s)")
                             .on_press(Message::SendFiles)
-                            .width(140)
+                            .width(110)
                             .tooltip("Send the selected file(s).")
                     } else {
                         button::standard("Send File(s)")
-                            .width(140)
+                            .width(110)
                             .tooltip("Send the selected file(s).")
                     })
                     .align_x(Horizontal::Left)
                     .padding(5),
-                    horizontal_space().width(100),
+                    horizontal_space().width(Length::Fill),
                     column!(button::standard("Recieve File(s)")
                         .on_press(Message::RecieveFiles)
-                        .width(140)
+                        .width(220)
                         .tooltip("Recieve files waiting in the Tail Drop inbox."))
                     .align_x(Horizontal::Right)
                     .padding(5)
