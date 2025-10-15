@@ -16,3 +16,4 @@ build-dir/
 
 # Archives
 *.tar*
+*.flatpak

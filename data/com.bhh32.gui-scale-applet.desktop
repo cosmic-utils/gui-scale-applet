@@ -1,13 +1,13 @@
 [Desktop Entry]
 Name=GUI-Scale Applet
 Type=Application
-Exec=/app/bin/gui-scale-applet
+Exec=gui-scale-applet
 Terminal=false
-Categories=Network;Utility
+Categories=COSMIC;Network;Utility
 Keywords=Tailscale;VPN;Network;COSMIC;Iced;
 Icon=com.bhh32.gui-scale-applet
 StartupNotify=true
-NoDisplay=true
+NotShowIn=COSMIC;
 X-CosmicApplet=true
 X-CosmicHoverPopup=Start
 X-OverflowPriority=10
