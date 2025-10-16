@@ -56,7 +56,7 @@ run *args:
     env RUST_LOG=cosmic_tasks=info RUST_BACKTRACE=full cargo run --release {{ args }}
 
 # Installs files
-install: build-release
+install:
     sudo install -Dm0755 {{ bin-src }} {{ bin-dst }}
     sudo install -Dm0644 {{ desktop-src }} {{ desktop-dst }}
     sudo install -Dm0644 {{ icons-src }} {{ icons-dst }}
