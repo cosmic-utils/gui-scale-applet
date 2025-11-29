@@ -31,11 +31,11 @@ clean-vendor:
 clean-dist: clean clean-vendor
 
 # Compiles with debug profile
-build-debug *args:
+build *args:
     cargo build {{ args }}
 
 # Compiles with release profile
-build-release *args: (build-debug '--release' args)
+build-release *args: (build '--release' args)
 
 # Compiles release profile with vendored dependencies
 build-vendored *args: vendor-extract (build-release '--frozen --offline' args)
@@ -56,7 +56,7 @@ run *args:
     env RUST_LOG=cosmic_tasks=info RUST_BACKTRACE=full cargo run --release {{ args }}
 
 # Installs files
-install:
+install: (build-release)
     sudo install -Dm0755 {{ bin-src }} {{ bin-dst }}
     sudo install -Dm0644 {{ desktop-src }} {{ desktop-dst }}
     sudo install -Dm0644 {{ icons-src }} {{ icons-dst }}
