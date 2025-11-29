@@ -7,3 +7,11 @@ target/
 
 # VSCode
 .vscode/
+
+# Flatpak files
+.flatpak-builder/
+repo/
+
+# Archives
+*.flatpak
+*.tar.gz
