@@ -1,5 +1,5 @@
 name := 'gui-scale-applet'
-export APPID := 'com.github.bhh32.GUIScaleApplet'
+export APPID := 'com.bhh32.GUIScaleApplet'
 rootdir := ''
 prefix := '/usr'
 base-dir := absolute_path(clean(rootdir / prefix))
@@ -12,7 +12,7 @@ desktop-dst := clean(rootdir / prefix) / 'share' / 'applications' / desktop
 metainfo := APPID + '.metainfo.xml'
 metainfo-src := 'data' / metainfo
 metainfo-dst := clean(rootdir / prefix) / 'share' / 'metainfo' / metainfo
-icon := 'tailscale-icon.png'
+icon := 'com.bhh32.gui-scale-applet.png'
 icons-src := 'data' / 'icons' / 'scalable' / 'apps' / icon
 icons-dst := clean(rootdir / prefix) / 'share' / 'icons' / 'hicolor' / 'scalable' / 'status' / icon
 
@@ -63,9 +63,9 @@ install: (build-release)
 
 # Uninstalls installed files
 uninstall:
-    sudo rm {{ bin-dst }}
-    sudo rm {{ desktop-dst }}
-    sudo rm {{ icons-dst }}
+    rm {{bin-dst}}
+    rm {{desktop-dst}}
+    rm "{{icons-dst}}/com.bhh32.gui-scale-applet.png"
 
 # Vendor dependencies only
 vendor:
