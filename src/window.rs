@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 use crate::{
     config::{APP_ID, AppPreferences, CONFIG_VERS, load_preferences, update_config},
     fl,
@@ -9,6 +10,15 @@ use crate::{
     },
     notifications::*,
     tailscale_api::TailscaleClient,
+=======
+use crate::config::{load_config, update_config};
+use crate::logic::{
+    clear_status, enable_exit_node, exit_node_allow_lan_access, get_acct_list,
+    get_avail_exit_nodes, get_current_acct, get_is_exit_node, get_tailscale_con_status,
+    get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status,
+    set_exit_node, set_routes, set_ssh, switch_accounts, tailscale_int_up, tailscale_recieve,
+    tailscale_send,
+>>>>>>> a2689dd (Add account switching)
 };
 use cosmic::{
     Action, Element, Task,
@@ -61,6 +71,7 @@ pub struct Window {
     receive_file_status: String,
     exit_node_names: Vec<String>,
     sel_exit_node_idx: Option<usize>,
+<<<<<<< HEAD
     acct_names: Vec<String>,
     selected_device_detail_idx: Option<usize>,
     ping_result: Option<PingResult>,
@@ -71,6 +82,12 @@ pub struct Window {
     previous_device_count: usize,
     notifications_initialized: bool,
     initial_load_done: bool,
+=======
+    acct_list: Vec<String>,
+    cur_acct: String,
+    allow_lan: bool,
+    is_exit_node: bool,
+>>>>>>> a2689dd (Add account switching)
 }
 
 /// Messages to be sent to the Libcosmic Update function
@@ -89,6 +106,7 @@ pub enum Message {
     EnableSSH(bool),
     AcceptRoutes(bool),
     ConnectDisconnect(bool),
+<<<<<<< HEAD
     ToggleMagicDns(bool),
 
     // Accounts
@@ -96,6 +114,9 @@ pub enum Message {
     LoginNewAccount,
 
     // Tails Drop
+=======
+    SwitchAccount(usize),
+>>>>>>> a2689dd (Add account switching)
     DeviceSelected(usize),
     ChooseFiles,
     FilesSelected(Vec<Url>),
@@ -151,14 +172,55 @@ impl cosmic::Application for Window {
     }
 
     fn init(core: Core, _flags: Self::Flags) -> (Window, Task<Action<Self::Message>>) {
+<<<<<<< HEAD
         let client = TailscaleClient::new();
         let preferences = load_preferences();
+=======
+        // Get the SSH status from the Tailscale CLI
+        let ssh = get_tailscale_ssh_status();
+        // Get the Accept Routes status from the Tailscale CLI
+        let routes = get_tailscale_routes_status();
+        // Get the connection status from the Tailscale CLI
+        let connect = get_tailscale_con_status();
+        // Get the other devices on the Tailnet from the Tailscale CLI
+        let device_options = get_tailscale_devices();
+
+        // Set the default applet state for allow_lan to false
+        let allow_lan = false;
+        // Get the state of the host being an exit node from the Tailscale CLI
+        let is_exit_node = get_is_exit_node();
+
+        // Get the list of accounts the device is registered on
+        let acct_list = get_acct_list();
+
+        // Get which account the device is currently logged into
+        let cur_acct = get_current_acct();
+
+        // Check to see if the host is an exit node already.
+        // If it's not, get the available exit nodes.
+        // If it is, set exit_nodes_init to the messag.
+        let exit_nodes_init = if !is_exit_node {
+            get_avail_exit_nodes()
+        } else {
+            vec![String::from(
+                "Can't select an exit node\nwhile host is an exit node!",
+            )]
+        };
+>>>>>>> a2689dd (Add account switching)
 
         // Set the start up state of the application using the above variables
         let window = Window {
             core,
+<<<<<<< HEAD
             config: Config::new(APP_ID, CONFIG_VERS).unwrap(),
             client: client.clone(),
+=======
+            config: Config::new(ID, CONFIG_VERS).unwrap(),
+            ssh,
+            routes,
+            connect,
+            device_options,
+>>>>>>> a2689dd (Add account switching)
             popup: None,
             state: TailscaleState::default(),
             active_tab: Tab::Status,
@@ -167,6 +229,7 @@ impl cosmic::Application for Window {
             send_files: Vec::new(),
             send_file_status: String::new(),
             files_sent: false,
+<<<<<<< HEAD
             receive_file_status: String::new(),
             exit_node_names: vec![fl!("none-default")],
             sel_exit_node_idx: preferences.exit_node_idx,
@@ -180,6 +243,16 @@ impl cosmic::Application for Window {
             previous_device_count: 0,
             notifications_initialized: false,
             initial_load_done: false,
+=======
+            recieve_file_status: String::new(),
+            avail_exit_nodes: exit_nodes_init,
+            sel_exit_node: DEFAULT_EXIT_NODE.to_string(),
+            sel_exit_node_idx: None,
+            acct_list,
+            cur_acct,
+            allow_lan,
+            is_exit_node,
+>>>>>>> a2689dd (Add account switching)
         };
 
         // Kick off the initial async state load
@@ -416,6 +489,17 @@ impl cosmic::Application for Window {
                         Err(e) => Message::ActionCompleted(Err(e.to_string())),
                     }
                 }));
+            }
+            Message::SwitchAccount(new_acct) => {
+                self.cur_acct = self.acct_list[new_acct].clone();
+                switch_accounts(self.cur_acct.clone());
+
+                self.ssh = get_tailscale_ssh_status();
+                set_ssh(self.ssh);
+                self.routes = get_tailscale_routes_status();
+                set_routes(self.routes);
+                self.device_options = get_tailscale_devices();
+                self.avail_exit_nodes = get_avail_exit_nodes();
             }
             Message::DeviceSelected(device) => {
                 self.selected_device_idx = Some(device);
@@ -740,6 +824,7 @@ impl cosmic::Application for Window {
 
     // Libcosmic's applet view_window function
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
+<<<<<<< HEAD
         let tab_bar = row![
             tab_button("network-vpn-symbolic", Tab::Status, self.active_tab),
             tab_button("send-to-symbolic", Tab::TailDrop, self.active_tab),
@@ -759,6 +844,41 @@ impl cosmic::Application for Window {
             Tab::Devices => self.view_devices_tab(),
             Tab::Settings => self.view_settings_tab(),
         };
+=======
+        // Normal status elements
+        let cur_acct = &self.cur_acct;
+        let acct_list = &self.acct_list;
+        let ip = get_tailscale_ip();
+
+        // Get the current account index
+        let mut sel_acct_idx = None;
+        for (idx, acct) in acct_list.iter().enumerate() {
+            if acct == cur_acct {
+                sel_acct_idx = Some(idx);
+                break;
+            }
+        }
+
+        let conn_status = get_tailscale_con_status();
+
+        let status_elements: Vec<Element<'_, Message>> = vec![
+            (Element::from(column!(
+                row!(settings::item(
+                    "Account",
+                    dropdown(acct_list, sel_acct_idx, Message::SwitchAccount)
+                )),
+                row!(settings::item("Tailscale Address", text(ip.clone()),)),
+                row!(settings::item(
+                    "Connection Status",
+                    text(if conn_status {
+                        "Tailscale Connected"
+                    } else {
+                        "Tailscale Disconnected"
+                    })
+                )),
+            ))),
+        ];
+>>>>>>> a2689dd (Add account switching)
 
         let body = column![tab_bar, scrollable(content)].spacing(4);
         self.core.applet.popup_container(body).into()

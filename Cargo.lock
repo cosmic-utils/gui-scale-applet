@@ -788,7 +788,11 @@ dependencies = [
  "num-traits",
  "serde",
  "wasm-bindgen",
+<<<<<<< HEAD
  "windows-link 0.2.1",
+=======
+ "windows-link",
+>>>>>>> a2689dd (Add account switching)
 ]
 
 [[package]]
@@ -1022,7 +1026,11 @@ name = "cosmic-freedesktop-icons"
 version = "0.4.0"
 source = "git+https://github.com/pop-os/freedesktop-icons#44edef967337dfacdb1b997a6b1b4c641c1b6e18"
 dependencies = [
+<<<<<<< HEAD
  "dirs 6.0.0",
+=======
+ "dirs",
+>>>>>>> a2689dd (Add account switching)
  "ini_core",
  "memmap2 0.9.9",
  "thiserror 2.0.17",
@@ -1956,7 +1964,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bd49230192a3797a9a4d6abe9b3eed6f7fa4c8a8a4947977c6f80025f92cbd8"
 dependencies = [
  "rustix 1.1.2",
+<<<<<<< HEAD
  "windows-link 0.2.1",
+=======
+ "windows-link",
+>>>>>>> a2689dd (Add account switching)
 ]
 
 [[package]]
@@ -2110,6 +2122,7 @@ checksum = "f9e2d4c0a8296178d8802098410ca05d86b17a10bb5ab559b3fb404c1f948220"
 
 [[package]]
 name = "gui-scale-applet"
+<<<<<<< HEAD
 version = "3.10.0"
 dependencies = [
  "dirs 5.0.1",
@@ -2124,6 +2137,14 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
+=======
+version = "2.0.0"
+dependencies = [
+ "libcosmic",
+ "regex",
+ "rust-embed",
+ "serde",
+>>>>>>> a2689dd (Add account switching)
  "tokio",
  "url",
 ]
@@ -2229,6 +2250,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
+<<<<<<< HEAD
 name = "http"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2302,6 +2324,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> a2689dd (Add account switching)
 name = "i18n-config"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3045,7 +3069,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7c4b02199fee7c5d21a5ae7d8cfa79a6ef5bb2fc834d6e9058e89c825efdc55"
 dependencies = [
  "cfg-if",
+<<<<<<< HEAD
  "windows-link 0.2.1",
+=======
+ "windows-link",
+>>>>>>> a2689dd (Add account switching)
 ]
 
 [[package]]
@@ -3194,6 +3222,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "mac-notification-sys"
 version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3206,6 +3235,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> a2689dd (Add account switching)
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3427,6 +3458,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "notify-rust"
 version = "4.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3441,6 +3473,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> a2689dd (Add account switching)
 name = "notify-types"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3664,8 +3698,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272"
 dependencies = [
  "bitflags 2.10.0",
+<<<<<<< HEAD
  "block2 0.6.2",
  "libc",
+=======
+>>>>>>> a2689dd (Add account switching)
  "objc2 0.6.3",
  "objc2-core-foundation",
 ]
@@ -3911,7 +3948,11 @@ dependencies = [
  "libc",
  "redox_syscall 0.5.18",
  "smallvec",
+<<<<<<< HEAD
  "windows-link 0.2.1",
+=======
+ "windows-link",
+>>>>>>> a2689dd (Add account switching)
 ]
 
 [[package]]
@@ -3991,9 +4032,12 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.111",
+<<<<<<< HEAD
 =======
  "syn 2.0.110",
 >>>>>>> 4e40747 (Update deps)
+=======
+>>>>>>> a2689dd (Add account switching)
 ]
 
 [[package]]
@@ -4371,6 +4415,7 @@ dependencies = [
 
 [[package]]
 name = "redox_users"
+<<<<<<< HEAD
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
@@ -4382,6 +4427,8 @@ dependencies = [
 
 [[package]]
 name = "redox_users"
+=======
+>>>>>>> a2689dd (Add account switching)
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
@@ -5134,6 +5181,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "tauri-winrt-notification"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5146,6 +5194,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> a2689dd (Add account switching)
 name = "temp-dir"
 version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5318,7 +5368,10 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
+<<<<<<< HEAD
  "parking_lot 0.12.5",
+=======
+>>>>>>> a2689dd (Add account switching)
  "pin-project-lite",
  "signal-hook-registry",
  "socket2 0.6.1",
@@ -5473,12 +5526,15 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
+=======
+>>>>>>> a2689dd (Add account switching)
 name = "ttf-parser"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5695,6 +5751,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "want"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5704,6 +5761,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> a2689dd (Add account switching)
 name = "wasi"
 version = "0.11.1+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6148,6 +6207,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "windows"
 version = "0.61.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6170,6 +6230,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> a2689dd (Add account switching)
 name = "windows-core"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6190,6 +6252,7 @@ dependencies = [
 
 [[package]]
 name = "windows-core"
+<<<<<<< HEAD
 version = "0.61.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0fdd3ddb90610c7638aa2b3a3ab2904fb9e5cdbecc643ddb3647212781c4ae3"
@@ -6203,12 +6266,15 @@ dependencies = [
 
 [[package]]
 name = "windows-core"
+=======
+>>>>>>> a2689dd (Add account switching)
 version = "0.62.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8e83a14d34d0623b51dce9581199302a221863196a1dde71a7663a4c2be9deb"
 dependencies = [
  "windows-implement 0.60.2",
  "windows-interface 0.59.3",
+<<<<<<< HEAD
  "windows-link 0.2.1",
  "windows-result 0.4.1",
  "windows-strings 0.5.1",
@@ -6223,6 +6289,11 @@ dependencies = [
  "windows-core 0.61.2",
  "windows-link 0.1.3",
  "windows-threading",
+=======
+ "windows-link",
+ "windows-result 0.4.1",
+ "windows-strings",
+>>>>>>> a2689dd (Add account switching)
 ]
 
 [[package]]
@@ -6271,17 +6342,21 @@ dependencies = [
 
 [[package]]
 name = "windows-link"
+<<<<<<< HEAD
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e6ad25900d524eaabdbbb96d20b4311e1e7ae1699af4fb28c17ae66c80d798a"
 
 [[package]]
 name = "windows-link"
+=======
+>>>>>>> a2689dd (Add account switching)
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
 
 [[package]]
+<<<<<<< HEAD
 name = "windows-numerics"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6292,6 +6367,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> a2689dd (Add account switching)
 name = "windows-result"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6302,6 +6379,7 @@ dependencies = [
 
 [[package]]
 name = "windows-result"
+<<<<<<< HEAD
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56f42bd332cc6c8eac5af113fc0c1fd6a8fd2aa08a0119358686e5160d0586c6"
@@ -6311,10 +6389,13 @@ dependencies = [
 
 [[package]]
 name = "windows-result"
+=======
+>>>>>>> a2689dd (Add account switching)
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7781fa89eaf60850ac3d2da7af8e5242a5ea78d1a11c49bf2910bb5a73853eb5"
 dependencies = [
+<<<<<<< HEAD
  "windows-link 0.2.1",
 ]
 
@@ -6325,6 +6406,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56e6c93f3a0c3b36176cb1327a4958a0353d5d166c2a35cb268ace15e91d3b57"
 dependencies = [
  "windows-link 0.1.3",
+=======
+ "windows-link",
+>>>>>>> a2689dd (Add account switching)
 ]
 
 [[package]]
@@ -6333,7 +6417,11 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7837d08f69c77cf6b07689544538e017c1bfcf57e34b4c0ff58e6c2cd3b37091"
 dependencies = [
+<<<<<<< HEAD
  "windows-link 0.2.1",
+=======
+ "windows-link",
+>>>>>>> a2689dd (Add account switching)
 ]
 
 [[package]]
@@ -6387,7 +6475,11 @@ version = "0.61.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
 dependencies = [
+<<<<<<< HEAD
  "windows-link 0.2.1",
+=======
+ "windows-link",
+>>>>>>> a2689dd (Add account switching)
 ]
 
 [[package]]
@@ -6442,7 +6534,11 @@ version = "0.53.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4945f9f551b88e0d65f3db0bc25c33b8acea4d9e41163edf90dcd0b19f9069f3"
 dependencies = [
+<<<<<<< HEAD
  "windows-link 0.2.1",
+=======
+ "windows-link",
+>>>>>>> a2689dd (Add account switching)
  "windows_aarch64_gnullvm 0.53.1",
  "windows_aarch64_msvc 0.53.1",
  "windows_i686_gnu 0.53.1",
@@ -6454,6 +6550,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "windows-threading"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6472,6 +6569,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> a2689dd (Add account switching)
 name = "windows_aarch64_gnullvm"
 version = "0.42.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

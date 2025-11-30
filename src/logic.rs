@@ -436,3 +436,187 @@ pub fn default_download_dir() -> String {
         "/tmp".to_string()
     }
 }
+<<<<<<< HEAD
+=======
+
+// Exit Node Section
+
+/// Make current host an exit node
+pub fn enable_exit_node(is_exit_node: bool) {
+    let _advertise_cmd = Command::new("tailscale")
+        .args(["set", &format!("--advertise-exit-node={is_exit_node}")])
+        .spawn()
+        .unwrap();
+
+    let _ = tailscale_int_up(true);
+}
+
+/// Get the status of whether or not the host is an exit node
+pub fn get_is_exit_node() -> bool {
+    let is_exit_node_cmd = Command::new("tailscale")
+        .args(["debug", "prefs"])
+        .output()
+        .expect("Failed to run the `tailscale debug prefs` command");
+
+    let output = String::from_utf8_lossy(&is_exit_node_cmd.stdout).to_string();
+    let adv_rts = output
+        .lines()
+        .filter(|line| line.to_lowercase().contains("advertiseroutes"))
+        .flat_map(|line| line.chars())
+        .collect::<String>();
+
+    if adv_rts.contains("null") {
+        return false;
+    }
+
+    true
+}
+
+/// Add/remove exit node's access to the host's local LAN
+pub fn exit_node_allow_lan_access(is_allowed: bool) -> String {
+    let allow_lan_access = if is_allowed { "true" } else { "false" };
+
+    let allow_lan_cmd = Command::new("tailscale")
+        .args([
+            "set",
+            &format!("--exit-node-allow-lan-access={allow_lan_access}"),
+        ])
+        .spawn();
+
+    match allow_lan_cmd {
+        Ok(_) => String::from("Exit node access to LAN allowed!"),
+        Err(e) => format!("Something went wrong: {e}"),
+    }
+}
+
+/// Get available exit nodes
+pub fn get_avail_exit_nodes() -> Vec<String> {
+    // Run the tailscale exit-node list command
+    let exit_node_list_cmd = Command::new("tailscale")
+        .args(["exit-node", "list"])
+        .output();
+
+    // Get the output String from the command
+    let exit_node_list_string = String::from_utf8(exit_node_list_cmd.unwrap().stdout).unwrap();
+
+    // Return if there are no exit nodes
+    if exit_node_list_string.is_empty() {
+        println!("No exit nodes found!");
+        return vec!["No exit nodes found!".to_string()];
+    }
+
+    // Get all of the exit node hostnames out of the output
+    let fq_hostname_reg = RegexBuilder::new(r#"\w.\w.ts.net"#).build().ok().unwrap();
+    let mut exit_node_list: Vec<String> = vec!["None".to_string()];
+
+    let mut exit_node_map: Vec<String> = exit_node_list_string
+        .lines()
+        .filter(|line| fq_hostname_reg.is_match(line))
+        .map(|hostname| {
+            hostname
+                .split_whitespace()
+                .nth(1)
+                .expect("Could not get node fully qualified hostname!")
+                .split(".")
+                .next()
+                .expect("Could not get node hostname!")
+                .to_string()
+        })
+        .collect();
+
+    exit_node_list.append(&mut exit_node_map);
+
+    exit_node_list
+}
+
+/// Set selected exit node as the exit node through Tailscale CLI
+pub fn set_exit_node(exit_node: String) -> bool {
+    let _ = Command::new("tailscale")
+        .args(["set", &format!("--exit-node={exit_node}")])
+        .spawn()
+        .expect("Set exit node was not successful!");
+
+    exit_node.is_empty()
+}
+
+pub fn switch_accounts(acct_name: String) -> bool {
+    let cmd = Command::new("tailscale")
+        .args(["switch", &acct_name])
+        .output()
+        .expect("Failed to run `tailscale switch {acct_name}`");
+
+    let success = String::from_utf8(cmd.stdout).unwrap();
+
+    success.to_lowercase().contains("success")
+}
+
+pub fn get_acct_list() -> Vec<String> {
+    // Run the tailscale swtich --list command
+    let accts = Command::new("tailscale")
+        .args(["switch", "--list"])
+        .output()
+        .expect("Failed to run `tailscale switch --list`");
+
+    // Turn the output into a string
+    let accts_str = String::from_utf8_lossy(&accts.stdout).to_string();
+
+    // Filter out the header line
+    let tailnets = accts_str
+        .lines()
+        .filter(|line| !line.to_lowercase().starts_with("id"))
+        .map(|line| line.to_string())
+        .collect::<Vec<String>>();
+
+    // Create a Vec<String> to return the valid accounts in
+    let mut ret_accts = Vec::new();
+
+    // Loop through the tailnets Vec that contains the accounts
+    for acct in tailnets {
+        // Create a Vec<String> removing all spaces
+        let accts = acct
+            .split_whitespace()
+            .filter(|line| !line.trim().is_empty())
+            .map(|acct| acct.to_string())
+            .collect::<Vec<String>>();
+
+        // Add the accounts element into the ret_accts Vec<String>
+        ret_accts.push(accts[1].clone());
+    }
+
+    // Return the accounts Vec
+    ret_accts
+}
+
+pub fn get_current_acct() -> String {
+    // Run the `tailscale status --json` command
+    let cmd = Command::new("tailscale")
+        .args(["status", "--json"])
+        .output()
+        .expect("Failed to run `tailscale status --json` command");
+
+    // Turn the json output into a big String to be filtered
+    let output = String::from_utf8_lossy(&cmd.stdout).to_string();
+
+    // Filter for just the current tailnet name
+    output
+        .lines()
+        .filter(|line| line.trim().starts_with("\"Name\""))
+        .map(|line| {
+            // Remove the double quotes in the returned json
+            let rep1 = line
+                .trim()
+                .split_whitespace()
+                .last()
+                .unwrap()
+                .replace('"', "");
+            // Remove the end comma in the returned json
+            let rep2 = rep1.replace(',', "");
+
+            // Return the tailscale account name
+            rep2.trim().to_string()
+        })
+        // Return the current tailnet account name
+        .collect::<Vec<String>>()[0]
+        .clone()
+}
+>>>>>>> a2689dd (Add account switching)
