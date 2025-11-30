@@ -1,9 +1,10 @@
 use crate::config::{load_config, update_config};
 use crate::logic::{
-    clear_status, enable_exit_node, exit_node_allow_lan_access, get_avail_exit_nodes,
-    get_is_exit_node, get_tailscale_con_status, get_tailscale_devices, get_tailscale_ip,
-    get_tailscale_routes_status, get_tailscale_ssh_status, set_exit_node, set_routes, set_ssh,
-    tailscale_int_up, tailscale_recieve, tailscale_send,
+    clear_status, enable_exit_node, exit_node_allow_lan_access, get_acct_list,
+    get_avail_exit_nodes, get_current_acct, get_is_exit_node, get_tailscale_con_status,
+    get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status,
+    set_exit_node, set_routes, set_ssh, switch_accounts, tailscale_int_up, tailscale_recieve,
+    tailscale_send,
 };
 use cosmic::app::Core;
 use cosmic::cosmic_config::Config;
@@ -13,7 +14,7 @@ use cosmic::iced::{
     platform_specific::shell::commands::popup::{destroy_popup, get_popup},
     widget::{column, horizontal_space, row},
     window::Id,
-    Alignment, Length, Limits, Task,
+    Alignment, Length, Limits,
 };
 use cosmic::iced_runtime::core::window;
 use cosmic::iced_widget::Row;
@@ -22,7 +23,7 @@ use cosmic::widget::{
     settings::{self},
     text, toggler,
 };
-use cosmic::Element;
+use cosmic::{Action, Element, Task};
 use std::fmt::Debug;
 use std::path::PathBuf;
 use url::Url;
@@ -30,8 +31,8 @@ use url::Url;
 const ID: &str = "com.github.bhh32.GUIScaleApplet";
 const CONFIG_VERS: u64 = 1;
 const DEFAULT_EXIT_NODE: &str = "Select Exit Node";
-const POPUP_MAX_WIDTH: f32 = 400.0;
-const POPUP_MIN_WIDTH: f32 = 300.0;
+const POPUP_MAX_WIDTH: f32 = 720.0;
+const POPUP_MIN_WIDTH: f32 = 640.0;
 const POPUP_MAX_HEIGHT: f32 = 1080.0;
 const POPUP_MIN_HEIGHT: f32 = 200.0;
 const STATUS_CLEAR_TIME: u64 = 5;
@@ -54,6 +55,8 @@ pub struct Window {
     avail_exit_nodes: Vec<String>,
     sel_exit_node: String,
     sel_exit_node_idx: Option<usize>,
+    acct_list: Vec<String>,
+    cur_acct: String,
     allow_lan: bool,
     is_exit_node: bool,
 }
@@ -66,6 +69,7 @@ pub enum Message {
     EnableSSH(bool),
     AcceptRoutes(bool),
     ConnectDisconnect(bool),
+    SwitchAccount(usize),
     DeviceSelected(usize),
     ChooseFiles,
     FilesSelected(Vec<Url>),
@@ -94,7 +98,7 @@ impl cosmic::Application for Window {
         &mut self.core
     }
 
-    fn init(core: Core, _flags: Self::Flags) -> (Window, Task<cosmic::Action<Message>>) {
+    fn init(core: Core, _flags: Self::Flags) -> (Window, Task<Action<Self::Message>>) {
         // Get the SSH status from the Tailscale CLI
         let ssh = get_tailscale_ssh_status();
         // Get the Accept Routes status from the Tailscale CLI
@@ -102,12 +106,18 @@ impl cosmic::Application for Window {
         // Get the connection status from the Tailscale CLI
         let connect = get_tailscale_con_status();
         // Get the other devices on the Tailnet from the Tailscale CLI
-        let dev_init = get_tailscale_devices();
+        let device_options = get_tailscale_devices();
 
         // Set the default applet state for allow_lan to false
         let allow_lan = false;
         // Get the state of the host being an exit node from the Tailscale CLI
         let is_exit_node = get_is_exit_node();
+
+        // Get the list of accounts the device is registered on
+        let acct_list = get_acct_list();
+
+        // Get which account the device is currently logged into
+        let cur_acct = get_current_acct();
 
         // Check to see if the host is an exit node already.
         // If it's not, get the available exit nodes.
@@ -127,7 +137,7 @@ impl cosmic::Application for Window {
             ssh,
             routes,
             connect,
-            device_options: dev_init,
+            device_options,
             popup: None,
             selected_device: DEFAULT_EXIT_NODE.to_string(),
             selected_device_idx: Some(0),
@@ -138,6 +148,8 @@ impl cosmic::Application for Window {
             avail_exit_nodes: exit_nodes_init,
             sel_exit_node: DEFAULT_EXIT_NODE.to_string(),
             sel_exit_node_idx: None,
+            acct_list,
+            cur_acct,
             allow_lan,
             is_exit_node,
         };
@@ -170,7 +182,7 @@ impl cosmic::Application for Window {
     }
 
     // Libcosmic's update function
-    fn update(&mut self, message: Message) -> Task<cosmic::Action<Message>> {
+    fn update(&mut self, message: Message) -> Task<Action<Self::Message>> {
         match message {
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
@@ -213,6 +225,17 @@ impl cosmic::Application for Window {
             Message::ConnectDisconnect(connection) => {
                 self.connect = connection;
                 tailscale_int_up(self.connect);
+            }
+            Message::SwitchAccount(new_acct) => {
+                self.cur_acct = self.acct_list[new_acct].clone();
+                switch_accounts(self.cur_acct.clone());
+
+                self.ssh = get_tailscale_ssh_status();
+                set_ssh(self.ssh);
+                self.routes = get_tailscale_routes_status();
+                set_routes(self.routes);
+                self.device_options = get_tailscale_devices();
+                self.avail_exit_nodes = get_avail_exit_nodes();
             }
             Message::DeviceSelected(device) => {
                 self.selected_device = self.device_options[device].clone();
@@ -309,10 +332,9 @@ impl cosmic::Application for Window {
                 println!("tx_status: {tx_status:?}");
                 // Once the files are sent:
                 // 1. Set the send file status to the transfer status
-                self.send_file_status = if let Some(err_val) = tx_status {
-                    err_val
-                } else {
-                    String::from("File(s) sent successfully!")
+                self.send_file_status = match tx_status {
+                    Some(err_val) => err_val,
+                    None => String::from("Files(s) sent successfully!"),
                 };
 
                 if !self.send_file_status.is_empty() {
@@ -380,11 +402,12 @@ impl cosmic::Application for Window {
                     update_config(
                         self.config.clone(),
                         "exit-node",
-                        if let Some(idx) = self.sel_exit_node_idx {
-                            idx
-                        } else {
-                            eprintln!("Could not update the config file!");
-                            0
+                        match self.sel_exit_node_idx {
+                            Some(idx) => idx,
+                            None => {
+                                eprintln!("Could not update the config file!");
+                                0
+                            }
                         },
                     );
                 }
@@ -407,9 +430,7 @@ impl cosmic::Application for Window {
                     self.is_exit_node = is_exit_node;
 
                     // Enable/disable this host as an exit node
-                    if let Err(e) = enable_exit_node(self.is_exit_node) {
-                        eprintln!("{e}");
-                    }
+                    enable_exit_node(self.is_exit_node);
 
                     self.avail_exit_nodes = get_avail_exit_nodes();
                 }
@@ -419,13 +440,10 @@ impl cosmic::Application for Window {
                 if !self.recieve_file_status.is_empty() {
                     // Done in a separate thread as to not block the current thread.
                     return cosmic::task::future(async move {
-                        Message::FilesRecieved(
-                            if let Some(bad_value) = clear_status(STATUS_CLEAR_TIME).await {
-                                format!("Something went wrong and clear status returned a value: {bad_value}")
-                            } else {
-                                String::new()
-                            },
-                        )
+                        Message::FilesRecieved(match clear_status(STATUS_CLEAR_TIME).await {
+                            Some(bad_value) => format!("Something went wrong and clear status returned a value: {bad_value}"),
+                            None => String::new(),
+                        })
                     });
                 // Clear the send files status in the status clear time
                 } else if !self.send_file_status.is_empty() || self.files_sent {
@@ -436,13 +454,12 @@ impl cosmic::Application for Window {
 
                     // Done in a separate thread as to not block the current thread.
                     return cosmic::task::future(async move {
-                        Message::FilesSent(
-                            if let Some(bad_value) = clear_status(STATUS_CLEAR_TIME).await {
-                                Some(format!("Something went wrong and clear status returned a value: {bad_value}"))
-                            } else {
-                                Some(String::new())
-                            },
-                        )
+                        Message::FilesSent(match clear_status(STATUS_CLEAR_TIME).await {
+                            Some(bad_value) => Some(format!(
+                                "Something went wrong and clear status returned value: {bad_value}"
+                            )),
+                            None => Some(String::new()),
+                        })
                     });
                 }
             }
@@ -463,11 +480,27 @@ impl cosmic::Application for Window {
     // Libcosmic's applet view_window function
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
         // Normal status elements
+        let cur_acct = &self.cur_acct;
+        let acct_list = &self.acct_list;
         let ip = get_tailscale_ip();
+
+        // Get the current account index
+        let mut sel_acct_idx = None;
+        for (idx, acct) in acct_list.iter().enumerate() {
+            if acct == cur_acct {
+                sel_acct_idx = Some(idx);
+                break;
+            }
+        }
+
         let conn_status = get_tailscale_con_status();
 
         let status_elements: Vec<Element<'_, Message>> = vec![
             (Element::from(column!(
+                row!(settings::item(
+                    "Account",
+                    dropdown(acct_list, sel_acct_idx, Message::SwitchAccount)
+                )),
                 row!(settings::item("Tailscale Address", text(ip.clone()),)),
                 row!(settings::item(
                     "Connection Status",
@@ -513,13 +546,13 @@ impl cosmic::Application for Window {
                         self.selected_device_idx,
                         Message::DeviceSelected
                     )
-                    .width(140))
+                    .width(110))
                     .align_x(Horizontal::Left)
                     .padding(5),
                     horizontal_space().width(Length::Fill),
                     column!(button::standard("Select File(s)")
                         .on_press(Message::ChooseFiles)
-                        .width(140)
+                        .width(220)
                         .tooltip("Select the file(s) to send."))
                     .align_x(Horizontal::Right)
                     .padding(5)
@@ -530,11 +563,11 @@ impl cosmic::Application for Window {
                     column!(if !self.send_files.is_empty() {
                         button::standard("Send File(s)")
                             .on_press(Message::SendFiles)
-                            .width(140)
+                            .width(110)
                             .tooltip("Send the selected file(s).")
                     } else {
                         button::standard("Send File(s)")
-                            .width(140)
+                            .width(110)
                             .tooltip("Send the selected file(s).")
                     })
                     .align_x(Horizontal::Left)
@@ -542,7 +575,7 @@ impl cosmic::Application for Window {
                     horizontal_space().width(Length::Fill),
                     column!(button::standard("Recieve File(s)")
                         .on_press(Message::RecieveFiles)
-                        .width(140)
+                        .width(220)
                         .tooltip("Recieve files waiting in the Tail Drop inbox."))
                     .align_x(Horizontal::Right)
                     .padding(5)

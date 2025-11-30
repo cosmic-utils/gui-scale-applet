@@ -10,8 +10,8 @@ use regex::RegexBuilder;
 
 /// Get the IPv4 address assigned to this computer.
 pub fn get_tailscale_ip() -> String {
-    let ip_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "tailscale", "ip", "-4"])
+    let ip_cmd = Command::new("tailscale")
+        .args(["ip", "-4"])
         .output()
         .unwrap();
 
@@ -23,13 +23,13 @@ pub fn get_tailscale_ip() -> String {
 
 /// Get Tailscale's connection status
 pub fn get_tailscale_con_status() -> bool {
-    let con_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "tailscale", "debug", "prefs"])
+    let con_cmd = Command::new("tailscale")
+        .args(["debug", "prefs"])
         .stdout(Stdio::piped())
         .spawn();
 
-    let grep_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "grep", "WantRunning"])
+    let grep_cmd = Command::new("grep")
+        .arg("WantRunning")
         .stdin(con_cmd.unwrap().stdout.unwrap())
         .output();
 
@@ -39,9 +39,7 @@ pub fn get_tailscale_con_status() -> bool {
 }
 
 pub fn get_tailscale_devices() -> Vec<String> {
-    let ts_status_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "tailscale", "status"])
-        .output();
+    let ts_status_cmd = Command::new("tailscale").arg("status").output();
 
     let out = match String::from_utf8(ts_status_cmd.unwrap().stdout) {
         Ok(s) => s,
@@ -75,51 +73,42 @@ pub fn get_tailscale_devices() -> Vec<String> {
 
 /// Get the current status of the SSH enablement
 pub fn get_tailscale_ssh_status() -> bool {
-    let ssh_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "tailscale", "debug", "prefs"])
-        //.stdout(Stdio::piped())
-        .output()
-        .expect("Failed to execute tailscale debug prefs command");
+    let ssh_cmd = Command::new("tailscale")
+        .args(["debug", "prefs"])
+        .stdout(Stdio::piped())
+        .spawn();
 
-    let grep_cmd = String::from_utf8(ssh_cmd.stdout).unwrap();
+    let grep_cmd = Command::new("grep")
+        .arg("RunSSH")
+        .stdin(ssh_cmd.unwrap().stdout.unwrap())
+        .output();
 
-    if let Some(ssh_status) = grep_cmd
-        .lines()
-        .into_iter()
-        .filter(|line| line.contains("RunSSH"))
-        .next()
-    {
-        ssh_status.contains("true")
-    } else {
-        false
-    }
+    let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
+
+    ssh_status.contains("true")
 }
 
 /// Get the current status of the accept-routes enablement
 pub fn get_tailscale_routes_status() -> bool {
-    let ssh_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "tailscale", "debug", "prefs"])
-        .output()
-        .expect("Failed to execute tailscale debug prefs command");
+    let ssh_cmd = Command::new("tailscale")
+        .args(["debug", "prefs"])
+        .stdout(Stdio::piped())
+        .spawn();
 
-    let grep_cmd = String::from_utf8(ssh_cmd.stdout).unwrap();
+    let grep_cmd = Command::new("grep")
+        .arg("RouteAll")
+        .stdin(ssh_cmd.unwrap().stdout.unwrap())
+        .output();
 
-    if let Some(ssh_status) = grep_cmd
-        .lines()
-        .into_iter()
-        .filter(|line| line.contains("AcceptRoutes"))
-        .next()
-    {
-        ssh_status.contains("true")
-    } else {
-        false
-    }
+    let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
+
+    ssh_status.contains("true")
 }
 
 /// Get available devices
 pub fn _get_available_devices() -> String {
-    let cmd = Command::new("flatpak-spawn")
-        .args(["--host", "tailscale", "status", "--active"])
+    let cmd = Command::new("tailscale")
+        .args(["status", "--active"])
         .output();
 
     String::from_utf8(cmd.unwrap().stdout).unwrap()
@@ -129,15 +118,11 @@ pub fn _get_available_devices() -> String {
 pub fn tailscale_int_up(up_down: bool) -> bool {
     let mut ret = false;
     if up_down {
-        let _ = Command::new("flatpak-spawn")
-            .args(["--host", "tailscale", "up"])
-            .output();
+        let _ = Command::new("tailscale").arg("up").output();
 
         ret = true;
     } else {
-        let _ = Command::new("flatpak-spawn")
-            .args(["--host", "tailscale", "down"])
-            .output();
+        let _ = Command::new("tailscale").arg("down").output();
     }
 
     ret
@@ -160,15 +145,8 @@ pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Op
             // If there is path value
             Some(p) => {
                 // Send the file
-                let cmd = Command::new("flatpak-spawn")
-                    .args([
-                        "--host",
-                        "tailscale",
-                        "file",
-                        "cp",
-                        p,
-                        &format!("{target}:"),
-                    ])
+                let cmd = Command::new("tailscale")
+                    .args(["file", "cp", p, &format!("{target}:")])
                     .spawn();
 
                 // Check for errors from the tailscale command
@@ -206,10 +184,7 @@ pub async fn tailscale_send(file_paths: Vec<Option<String>>, target: &str) -> Op
 /// non-blocking for the UI.
 pub async fn tailscale_recieve() -> String {
     // Get the username of the current user.
-    let whoami_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "whoami"])
-        .output()
-        .unwrap();
+    let whoami_cmd = Command::new("whoami").output().unwrap();
 
     // Set the username to a variable.
     let username = String::from_utf8(whoami_cmd.stdout).unwrap();
@@ -218,8 +193,8 @@ pub async fn tailscale_recieve() -> String {
     let download_path = &format!("/home/{}/Downloads/", username.trim());
 
     // Run the tail drop recieve command, placing the file(s) in the user's Downloads directory.
-    let rx_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "tailscale", "file", "get", download_path])
+    let rx_cmd = Command::new("tailscale")
+        .args(["file", "get", download_path])
         .output();
 
     // Check to see if there were any errors during the recieve process.
@@ -242,12 +217,10 @@ pub async fn clear_status(wait_time: u64) -> Option<String> {
 /// Toggle SSH on/off
 pub fn set_ssh(ssh: bool) -> bool {
     let cmd: Result<Output, Error> = if ssh {
-        Command::new("flatpak-spawn")
-            .args(["--host", "tailscale", "set", "--ssh"])
-            .output()
+        Command::new("tailscale").args(["set", "--ssh"]).output()
     } else {
-        Command::new("flatpak-spawn")
-            .args(["--host", "tailscale", "set", "--ssh=false"])
+        Command::new("tailscale")
+            .args(["set", "--ssh=false"])
             .output()
     };
 
@@ -263,12 +236,12 @@ pub fn set_ssh(ssh: bool) -> bool {
 /// Toggle accept-routes on/off
 pub fn set_routes(accept_routes: bool) -> bool {
     let cmd: Result<Output, Error> = if accept_routes {
-        Command::new("flatpak-spawn")
-            .args(["--host", "tailscale", "set", "--accept-routes"])
+        Command::new("tailscale")
+            .args(["set", "--accept-routes"])
             .output()
     } else {
-        Command::new("flatpak-spawn")
-            .args(["--host", "tailscale", "set", "--accept-routes=false"])
+        Command::new("tailscale")
+            .args(["set", "--accept-routes=false"])
             .output()
     };
 
@@ -284,56 +257,42 @@ pub fn set_routes(accept_routes: bool) -> bool {
 // Exit Node Section
 
 /// Make current host an exit node
-pub fn enable_exit_node(is_exit_node: bool) -> Result<(), String> {
-    if let Err(e) = Command::new("flatpak-spawn")
-        .args([
-            "--host",
-            "tailscale",
-            "set",
-            &format!("--advertise-exit-node={is_exit_node}"),
-        ])
+pub fn enable_exit_node(is_exit_node: bool) {
+    let _advertise_cmd = Command::new("tailscale")
+        .args(["set", &format!("--advertise-exit-node={is_exit_node}")])
         .spawn()
-    {
-        eprintln!("Error enabling host as an exit node: {e}");
-        return Err(format!("Error enabling host as an exit node: {e}"));
-    };
+        .unwrap();
 
-    if !tailscale_int_up(true) {
-        eprintln!("Error running tailscale up to set host as an exit node");
-        return Err("Error running tailscale up to set host as an exit node".to_string());
-    }
-
-    Ok(())
+    let _ = tailscale_int_up(true);
 }
 
 /// Get the status of whether or not the host is an exit node
 pub fn get_is_exit_node() -> bool {
-    let is_exit_node_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "tailscale", "debug", "prefs"])
+    let is_exit_node_cmd = Command::new("tailscale")
+        .args(["debug", "prefs"])
         .output()
-        .expect("Failed to run tailscale debug prefs");
+        .expect("Failed to run the `tailscale debug prefs` command");
 
-    let grep_cmd = String::from_utf8(is_exit_node_cmd.stdout).unwrap();
-
-    if let Some(advert_routes_status) = grep_cmd
+    let output = String::from_utf8_lossy(&is_exit_node_cmd.stdout).to_string();
+    let adv_rts = output
         .lines()
         .filter(|line| line.to_lowercase().contains("advertiseroutes"))
-        .next()
-    {
-        advert_routes_status.contains("true")
-    } else {
-        false
+        .flat_map(|line| line.chars())
+        .collect::<String>();
+
+    if adv_rts.contains("null") {
+        return false;
     }
+
+    true
 }
 
 /// Add/remove exit node's access to the host's local LAN
 pub fn exit_node_allow_lan_access(is_allowed: bool) -> String {
     let allow_lan_access = if is_allowed { "true" } else { "false" };
 
-    let allow_lan_cmd = Command::new("flatpak-spawn")
+    let allow_lan_cmd = Command::new("tailscale")
         .args([
-            "--host",
-            "tailscale",
             "set",
             &format!("--exit-node-allow-lan-access={allow_lan_access}"),
         ])
@@ -348,8 +307,8 @@ pub fn exit_node_allow_lan_access(is_allowed: bool) -> String {
 /// Get available exit nodes
 pub fn get_avail_exit_nodes() -> Vec<String> {
     // Run the tailscale exit-node list command
-    let exit_node_list_cmd = Command::new("flatpak-spawn")
-        .args(["--host", "tailscale", "exit-node", "list"])
+    let exit_node_list_cmd = Command::new("tailscale")
+        .args(["exit-node", "list"])
         .output();
 
     // Get the output String from the command
@@ -387,16 +346,91 @@ pub fn get_avail_exit_nodes() -> Vec<String> {
 
 /// Set selected exit node as the exit node through Tailscale CLI
 pub fn set_exit_node(exit_node: String) -> bool {
-    let _exit_node_set_cmd = Command::new("flatpak-spawn")
-        .args([
-            "--host",
-            "tailscale",
-            "set",
-            &format!("--exit-node={exit_node}"),
-        ])
+    let _ = Command::new("tailscale")
+        .args(["set", &format!("--exit-node={exit_node}")])
         .spawn()
-        .expect("Set exit node was not successful!")
-        .wait();
+        .expect("Set exit node was not successful!");
 
     exit_node.is_empty()
+}
+
+pub fn switch_accounts(acct_name: String) -> bool {
+    let cmd = Command::new("tailscale")
+        .args(["switch", &acct_name])
+        .output()
+        .expect("Failed to run `tailscale switch {acct_name}`");
+
+    let success = String::from_utf8(cmd.stdout).unwrap();
+
+    success.to_lowercase().contains("success")
+}
+
+pub fn get_acct_list() -> Vec<String> {
+    // Run the tailscale swtich --list command
+    let accts = Command::new("tailscale")
+        .args(["switch", "--list"])
+        .output()
+        .expect("Failed to run `tailscale switch --list`");
+
+    // Turn the output into a string
+    let accts_str = String::from_utf8_lossy(&accts.stdout).to_string();
+
+    // Filter out the header line
+    let tailnets = accts_str
+        .lines()
+        .filter(|line| !line.to_lowercase().starts_with("id"))
+        .map(|line| line.to_string())
+        .collect::<Vec<String>>();
+
+    // Create a Vec<String> to return the valid accounts in
+    let mut ret_accts = Vec::new();
+
+    // Loop through the tailnets Vec that contains the accounts
+    for acct in tailnets {
+        // Create a Vec<String> removing all spaces
+        let accts = acct
+            .split_whitespace()
+            .filter(|line| !line.trim().is_empty())
+            .map(|acct| acct.to_string())
+            .collect::<Vec<String>>();
+
+        // Add the accounts element into the ret_accts Vec<String>
+        ret_accts.push(accts[1].clone());
+    }
+
+    // Return the accounts Vec
+    ret_accts
+}
+
+pub fn get_current_acct() -> String {
+    // Run the `tailscale status --json` command
+    let cmd = Command::new("tailscale")
+        .args(["status", "--json"])
+        .output()
+        .expect("Failed to run `tailscale status --json` command");
+
+    // Turn the json output into a big String to be filtered
+    let output = String::from_utf8_lossy(&cmd.stdout).to_string();
+
+    // Filter for just the current tailnet name
+    output
+        .lines()
+        .filter(|line| line.trim().starts_with("\"Name\""))
+        .map(|line| {
+            // Remove the double quotes in the returned json
+            let rep1 = line
+                .trim()
+                .split_whitespace()
+                .last()
+                .unwrap()
+                .replace('"', "");
+            // Remove the end comma in the returned json
+            let rep2 = rep1.replace(',', "");
+
+            // Return the tailscale account name
+            rep2.trim().to_string()
+        })
+        // Return the current tailnet account name
+        .collect::<Vec<String>>()[0]
+        .clone()
 }
