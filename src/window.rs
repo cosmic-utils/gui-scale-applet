@@ -182,7 +182,7 @@ impl cosmic::Application for Window {
     }
 
     // Libcosmic's update function
-    fn update(&mut self, message: Message) -> Task<Action<Self::Message>> {
+    fn update(&mut self, message: Self::Message) -> Task<Action<Self::Message>> {
         match message {
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
@@ -334,7 +334,7 @@ impl cosmic::Application for Window {
                 // 1. Set the send file status to the transfer status
                 self.send_file_status = match tx_status {
                     Some(err_val) => err_val,
-                    None => String::from("Files(s) sent successfully!"),
+                    None => String::from("File(s) sent successfully!"),
                 };
 
                 if !self.send_file_status.is_empty() {

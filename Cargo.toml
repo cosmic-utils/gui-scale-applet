@@ -9,6 +9,7 @@ tokio = "1.31"
 serde = "1.0.210"
 url = "2.4.0"
 regex = "1.11.1"
+dirs = "5"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic.git"

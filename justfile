@@ -1,93 +1,65 @@
 name := 'gui-scale-applet'
-export APPID := 'com.github.bhh32.GUIScaleApplet'
-rootdir := ''
-prefix := '/usr'
-base-dir := absolute_path(clean(rootdir / prefix))
-export INSTALL_DIR := base-dir / 'share'
-bin-src := 'target' / 'release' / name
-bin-dst := base-dir / 'bin' / name
-desktop := 'com.bhh32.gui-scale-applet.desktop'
-desktop-src := 'data' / desktop
-desktop-dst := clean(rootdir / prefix) / 'share' / 'applications' / desktop
-metainfo := 'com.bhh32.gui-scale-applet.metainfo.xml'
-metainfo-src := 'data' / metainfo
-metainfo-dst := clean(rootdir / prefix) / 'share' / 'metainfo' / metainfo
-icon := 'com.bhh32.gui-scale-applet.png'
-icons-src := 'data' / 'icons' / 'scalable' / 'apps' / icon
-icons-dst := clean(rootdir / prefix) / 'share' / 'icons' / 'hicolor' / 'scalable' / 'status' / icon
+appid := 'com.bhh32.gui-scale-applet'
+manifest := appid + '.yml'
+local-manifest := appid + '.local.yml'
+build-dir := 'flatpak-build'
+repo := 'repo'
 
-# Default recipe which runs 'just build-release'
-default: build-release
+# Default recipe which runs 'just build'
+default: build
 
-# Runs 'cargo clean'
+# Build the flatpak
+build:
+    flatpak-builder --force-clean {{ build-dir }} {{ manifest }}
+
+# Build the flatpak from local source
+build-local:
+    flatpak-builder --force-clean {{ build-dir }} {{ local-manifest }}
+
+# Build and install the flatpak for the current user
+install: build
+    flatpak-builder --user --install --force-clean {{ build-dir }} {{ manifest }}
+
+# Build and install the flatpak from local source for the current user
+install-local:
+    flatpak-builder --user --install --force-clean {{ build-dir }} {{ local-manifest }}
+
+# Uninstall the flatpak
+uninstall:
+    flatpak uninstall --user {{ appid }}
+
+# Run the installed flatpak
+run:
+    flatpak run {{ appid }}
+
+# Build and export to a local repository
+export: build
+    flatpak-builder --repo={{ repo }} --force-clean {{ build-dir }} {{ manifest }}
+
+# Create a single-file bundle from the repository
+bundle: export
+    flatpak build-bundle {{ repo }} {{ name }}.flatpak {{ appid }}
+
+# Clean build artifacts
 clean:
-    cargo clean
+    rm -rf {{ build-dir }} {{ repo }} .flatpak-builder {{ name }}.flatpak
 
-# Removes vendored dependencies
-clean-vendor:
-    rm -rf .cargo vendor vendor.tar
+# Install required runtime dependencies for the flatpak bundle
+install-deps:
+    flatpak install --user -y flathub org.freedesktop.Platform//24.08
 
-# 'cargo clean' and removes vendored dependencies
-clean-dist: clean clean-vendor
+# Install the flatpak bundle (installs deps first)
+install-bundle: install-deps
+    flatpak install --user -y {{ name }}.flatpak
 
-# Compiles with debug profile
-build-debug *args:
-    cargo build {{ args }}
-
-# Compiles with release profile
-build-release *args: (build-debug '--release' args)
-
-# Compiles release profile with vendored dependencies
-build-vendored *args: vendor-extract (build-release '--frozen --offline' args)
-
-# Runs clippy check
+# Runs clippy check (for development)
 check *args:
     cargo clippy --all-features {{ args }} -- -W clippy::pedantic
 
 # Runs a clippy check with JSON message format
 check-json: (check '--message-format=json')
 
+# Format and run locally with cargo (for development)
 dev *args:
     cargo fmt
-    just run {{ args }}
-
-# Run with debug logs
-run *args:
     env RUST_LOG=cosmic_tasks=info RUST_BACKTRACE=full cargo run --release {{ args }}
-
-# Installs files
-install: build-release
-    sudo install -Dm0755 {{ bin-src }} {{ bin-dst }}
-    sudo install -Dm0644 {{ desktop-src }} {{ desktop-dst }}
-    sudo install -Dm0644 {{ icons-src }} {{ icons-dst }}
-
-# Uninstalls installed files
-uninstall:
-    sudo rm {{ bin-dst }}
-    sudo rm {{ desktop-dst }}
-    sudo rm {{ icons-dst }}
-
-# Vendor dependencies only
-vendor:
-    #!/usr/bin/env bash
-    mkdir -p .cargo
-    cargo vendor --sync Cargo.toml | head -n -1 > .cargo/config.toml
-    echo 'directory = "vendor"' >> .cargo/config.toml
-    echo >> .cargo/config.toml
-    echo '[env]' >> .cargo/config.toml
-    if [ -n "${SOURCE_DATE_EPOCH}" ]
-    then
-        source_date="$date -d "@${SOURCE_DATE_EPOCH}" "+%Y-%m-%d")"
-        echo "VERGEN_GIT_COMMIT_DATE = \"${source_date}\"" >> .cargo/config.toml
-    fi
-    if [ -n "${SOURCE_GIT_HASH}" ]
-    then
-        echo "VERGEN_GIT_SHA = \"${SOURCE_GIT_HASH}\"" >> .cargo/config.toml
-    fi
-    tar pcf vendor.tar .cargo vendor
-    rm -rf .cargo vendor
-
-# Extract vendored dependencies
-vendor-extract:
-    rm -rf vendor
-    tar pxf vendor.tar

@@ -995,7 +995,7 @@ dependencies = [
  "atomicwrites",
  "cosmic-config-derive",
  "cosmic-settings-daemon",
- "dirs",
+ "dirs 6.0.0",
  "futures-util",
  "iced_futures",
  "known-folders",
@@ -1022,7 +1022,7 @@ name = "cosmic-freedesktop-icons"
 version = "0.4.0"
 source = "git+https://github.com/pop-os/freedesktop-icons#689c60d428f46dc59316eafa22297e196afa4b15"
 dependencies = [
- "dirs",
+ "dirs 6.0.0",
  "ini_core",
  "memmap2 0.9.9",
  "thiserror 2.0.17",
@@ -1110,7 +1110,7 @@ dependencies = [
  "almost",
  "cosmic-config",
  "csscolorparser",
- "dirs",
+ "dirs 6.0.0",
  "palette",
  "ron",
  "serde",
@@ -1329,11 +1329,32 @@ dependencies = [
 
 [[package]]
 name = "dirs"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
+dependencies = [
+ "dirs-sys 0.4.1",
+]
+
+[[package]]
+name = "dirs"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
 dependencies = [
- "dirs-sys",
+ "dirs-sys 0.5.0",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users 0.4.6",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -1344,7 +1365,7 @@ checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
 dependencies = [
  "libc",
  "option-ext",
- "redox_users",
+ "redox_users 0.5.2",
  "windows-sys 0.61.2",
 ]
 
@@ -2090,6 +2111,7 @@ checksum = "12101ecc8225ea6d675bc70263074eab6169079621c2186fe0c66590b2df9681"
 name = "gui-scale-applet"
 version = "2.0.0"
 dependencies = [
+ "dirs 5.0.1",
  "libcosmic",
  "regex",
  "rust-embed",
@@ -4187,6 +4209,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
 dependencies = [
  "bitflags 2.10.0",
+]
+
+[[package]]
+name = "redox_users"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
+dependencies = [
+ "getrandom 0.2.16",
+ "libredox",
+ "thiserror 1.0.69",
 ]
 
 [[package]]

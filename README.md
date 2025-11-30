@@ -51,26 +51,46 @@ This makes it where the applet doesn't need sudo (root) to do its job.
 
 ## Installation
 
-### Fedora/Fedora based distros
+### From GitHub Release
 
-Add the Copr repo:
+1. Download the `gui-scale-applet.flatpak` bundle from the [Releases](https://github.com/cosmic-utils/gui-scale-applet/releases) page.
+
+2. Install the required runtime dependency:
 
 ```bash
-sudo dnf copr enable bhh32/gui-scale-applet
-sudo dnf update --refresh
-sudo dnf install -y gui-scale-applet
+flatpak install --user flathub org.freedesktop.Platform//24.08
 ```
 
-### Debian/Ubuntu (including Pop!OS) based Distros
+3. Install the flatpak bundle:
 
-Unfortunately, I don't know anything like Copr for these distros, so you can download the deb package from the releases section of this repo.
+```bash
+flatpak install --user gui-scale-applet.flatpak
+```
 
-### Other
+### Build from Source
 
-For any other distros (except atomic/immutable distros) you can run:
+1. Clone the repository:
 
 ```bash
 git clone https://github.com/cosmic-utils/gui-scale-applet.git
 cd gui-scale-applet
-sudo just install
+git checkout flatpak
+```
+
+2. Build and install:
+
+```bash
+just install-local
+```
+
+Or to create a distributable bundle:
+
+```bash
+just bundle
+```
+
+## Uninstall
+
+```bash
+flatpak uninstall --user com.bhh32.gui-scale-applet
 ```
