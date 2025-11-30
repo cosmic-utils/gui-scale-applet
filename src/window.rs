@@ -1,9 +1,10 @@
 use crate::config::{load_config, update_config};
 use crate::logic::{
-    clear_status, enable_exit_node, exit_node_allow_lan_access, get_avail_exit_nodes,
-    get_is_exit_node, get_tailscale_con_status, get_tailscale_devices, get_tailscale_ip,
-    get_tailscale_routes_status, get_tailscale_ssh_status, set_exit_node, set_routes, set_ssh,
-    tailscale_int_up, tailscale_recieve, tailscale_send,
+    clear_status, enable_exit_node, exit_node_allow_lan_access, get_acct_list,
+    get_avail_exit_nodes, get_current_acct, get_is_exit_node, get_tailscale_con_status,
+    get_tailscale_devices, get_tailscale_ip, get_tailscale_routes_status, get_tailscale_ssh_status,
+    set_exit_node, set_routes, set_ssh, switch_accounts, tailscale_int_up, tailscale_recieve,
+    tailscale_send,
 };
 use cosmic::app::Core;
 use cosmic::cosmic_config::Config;
@@ -54,6 +55,8 @@ pub struct Window {
     avail_exit_nodes: Vec<String>,
     sel_exit_node: String,
     sel_exit_node_idx: Option<usize>,
+    acct_list: Vec<String>,
+    cur_acct: String,
     allow_lan: bool,
     is_exit_node: bool,
 }
@@ -66,6 +69,7 @@ pub enum Message {
     EnableSSH(bool),
     AcceptRoutes(bool),
     ConnectDisconnect(bool),
+    SwitchAccount(usize),
     DeviceSelected(usize),
     ChooseFiles,
     FilesSelected(Vec<Url>),
@@ -102,12 +106,18 @@ impl cosmic::Application for Window {
         // Get the connection status from the Tailscale CLI
         let connect = get_tailscale_con_status();
         // Get the other devices on the Tailnet from the Tailscale CLI
-        let dev_init = get_tailscale_devices();
+        let device_options = get_tailscale_devices();
 
         // Set the default applet state for allow_lan to false
         let allow_lan = false;
         // Get the state of the host being an exit node from the Tailscale CLI
         let is_exit_node = get_is_exit_node();
+
+        // Get the list of accounts the device is registered on
+        let acct_list = get_acct_list();
+
+        // Get which account the device is currently logged into
+        let cur_acct = get_current_acct();
 
         // Check to see if the host is an exit node already.
         // If it's not, get the available exit nodes.
@@ -127,7 +137,7 @@ impl cosmic::Application for Window {
             ssh,
             routes,
             connect,
-            device_options: dev_init,
+            device_options,
             popup: None,
             selected_device: DEFAULT_EXIT_NODE.to_string(),
             selected_device_idx: Some(0),
@@ -138,6 +148,8 @@ impl cosmic::Application for Window {
             avail_exit_nodes: exit_nodes_init,
             sel_exit_node: DEFAULT_EXIT_NODE.to_string(),
             sel_exit_node_idx: None,
+            acct_list,
+            cur_acct,
             allow_lan,
             is_exit_node,
         };
@@ -213,6 +225,17 @@ impl cosmic::Application for Window {
             Message::ConnectDisconnect(connection) => {
                 self.connect = connection;
                 tailscale_int_up(self.connect);
+            }
+            Message::SwitchAccount(new_acct) => {
+                self.cur_acct = self.acct_list[new_acct].clone();
+                switch_accounts(self.cur_acct.clone());
+
+                self.ssh = get_tailscale_ssh_status();
+                set_ssh(self.ssh);
+                self.routes = get_tailscale_routes_status();
+                set_routes(self.routes);
+                self.device_options = get_tailscale_devices();
+                self.avail_exit_nodes = get_avail_exit_nodes();
             }
             Message::DeviceSelected(device) => {
                 self.selected_device = self.device_options[device].clone();
@@ -456,11 +479,27 @@ impl cosmic::Application for Window {
     // Libcosmic's applet view_window function
     fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
         // Normal status elements
+        let cur_acct = &self.cur_acct;
+        let acct_list = &self.acct_list;
         let ip = get_tailscale_ip();
+
+        // Get the current account index
+        let mut sel_acct_idx = None;
+        for (idx, acct) in acct_list.iter().enumerate() {
+            if acct == cur_acct {
+                sel_acct_idx = Some(idx);
+                break;
+            }
+        }
+
         let conn_status = get_tailscale_con_status();
 
         let status_elements: Vec<Element<'_, Message>> = vec![
             (Element::from(column!(
+                row!(settings::item(
+                    "Account",
+                    dropdown(acct_list, sel_acct_idx, Message::SwitchAccount)
+                )),
                 row!(settings::item("Tailscale Address", text(ip.clone()),)),
                 row!(settings::item(
                     "Connection Status",

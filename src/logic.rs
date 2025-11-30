@@ -270,17 +270,17 @@ pub fn enable_exit_node(is_exit_node: bool) {
 pub fn get_is_exit_node() -> bool {
     let is_exit_node_cmd = Command::new("tailscale")
         .args(["debug", "prefs"])
-        .stdout(Stdio::piped())
-        .spawn();
+        .output()
+        .expect("Failed to run the `tailscale debug prefs` command");
 
-    let grep_cmd = Command::new("grep")
-        .args(["-i", "advertiseroutes"])
-        .stdin(is_exit_node_cmd.unwrap().stdout.unwrap())
-        .output();
+    let output = String::from_utf8_lossy(&is_exit_node_cmd.stdout).to_string();
+    let adv_rts = output
+        .lines()
+        .filter(|line| line.to_lowercase().contains("advertiseroutes"))
+        .flat_map(|line| line.chars())
+        .collect::<String>();
 
-    let ssh_status = String::from_utf8(grep_cmd.unwrap().stdout).unwrap();
-
-    if ssh_status.contains("null") {
+    if adv_rts.contains("null") {
         return false;
     }
 
@@ -346,10 +346,91 @@ pub fn get_avail_exit_nodes() -> Vec<String> {
 
 /// Set selected exit node as the exit node through Tailscale CLI
 pub fn set_exit_node(exit_node: String) -> bool {
-    let _exit_node_set_cmd = Command::new("tailscale")
+    let _ = Command::new("tailscale")
         .args(["set", &format!("--exit-node={exit_node}")])
         .spawn()
         .expect("Set exit node was not successful!");
 
     exit_node.is_empty()
+}
+
+pub fn switch_accounts(acct_name: String) -> bool {
+    let cmd = Command::new("tailscale")
+        .args(["switch", &acct_name])
+        .output()
+        .expect("Failed to run `tailscale switch {acct_name}`");
+
+    let success = String::from_utf8(cmd.stdout).unwrap();
+
+    success.to_lowercase().contains("success")
+}
+
+pub fn get_acct_list() -> Vec<String> {
+    // Run the tailscale swtich --list command
+    let accts = Command::new("tailscale")
+        .args(["switch", "--list"])
+        .output()
+        .expect("Failed to run `tailscale switch --list`");
+
+    // Turn the output into a string
+    let accts_str = String::from_utf8_lossy(&accts.stdout).to_string();
+
+    // Filter out the header line
+    let tailnets = accts_str
+        .lines()
+        .filter(|line| !line.to_lowercase().starts_with("id"))
+        .map(|line| line.to_string())
+        .collect::<Vec<String>>();
+
+    // Create a Vec<String> to return the valid accounts in
+    let mut ret_accts = Vec::new();
+
+    // Loop through the tailnets Vec that contains the accounts
+    for acct in tailnets {
+        // Create a Vec<String> removing all spaces
+        let accts = acct
+            .split_whitespace()
+            .filter(|line| !line.trim().is_empty())
+            .map(|acct| acct.to_string())
+            .collect::<Vec<String>>();
+
+        // Add the accounts element into the ret_accts Vec<String>
+        ret_accts.push(accts[1].clone());
+    }
+
+    // Return the accounts Vec
+    ret_accts
+}
+
+pub fn get_current_acct() -> String {
+    // Run the `tailscale status --json` command
+    let cmd = Command::new("tailscale")
+        .args(["status", "--json"])
+        .output()
+        .expect("Failed to run `tailscale status --json` command");
+
+    // Turn the json output into a big String to be filtered
+    let output = String::from_utf8_lossy(&cmd.stdout).to_string();
+
+    // Filter for just the current tailnet name
+    output
+        .lines()
+        .filter(|line| line.trim().starts_with("\"Name\""))
+        .map(|line| {
+            // Remove the double quotes in the returned json
+            let rep1 = line
+                .trim()
+                .split_whitespace()
+                .last()
+                .unwrap()
+                .replace('"', "");
+            // Remove the end comma in the returned json
+            let rep2 = rep1.replace(',', "");
+
+            // Return the tailscale account name
+            rep2.trim().to_string()
+        })
+        // Return the current tailnet account name
+        .collect::<Vec<String>>()[0]
+        .clone()
 }

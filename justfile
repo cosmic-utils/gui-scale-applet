@@ -12,7 +12,7 @@ desktop-dst := clean(rootdir / prefix) / 'share' / 'applications' / desktop
 metainfo := APPID + '.metainfo.xml'
 metainfo-src := 'data' / metainfo
 metainfo-dst := clean(rootdir / prefix) / 'share' / 'metainfo' / metainfo
-icon := 'com.bhh32.gui-scale-applet.png'
+icon := 'tailscale-icon.png'
 icons-src := 'data' / 'icons' / 'scalable' / 'apps' / icon
 icons-dst := clean(rootdir / prefix) / 'share' / 'icons' / 'hicolor' / 'scalable' / 'status' / icon
 
@@ -65,7 +65,7 @@ install: (build-release)
 uninstall:
     rm {{bin-dst}}
     rm {{desktop-dst}}
-    rm "{{icons-dst}}/com.bhh32.gui-scale-applet.png"
+    rm {{icons-dst}}
 
 # Vendor dependencies only
 vendor:
