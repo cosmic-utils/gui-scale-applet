@@ -9,11 +9,11 @@ repo := 'repo'
 default: build
 
 # Build the flatpak
-build:
+build: install-deps    
     flatpak-builder --force-clean {{ build-dir }} {{ manifest }}
 
 # Build the flatpak from local source
-build-local:
+build-local: install-deps
     flatpak-builder --force-clean {{ build-dir }} {{ local-manifest }}
 
 # Build and install the flatpak for the current user
@@ -45,8 +45,65 @@ clean:
     rm -rf {{ build-dir }} {{ repo }} .flatpak-builder {{ name }}.flatpak
 
 # Install required runtime dependencies for the flatpak bundle
-install-deps:
+install-deps: 
+    #!/usr/bin/env bash
     flatpak install --user -y flathub org.freedesktop.Platform//24.08
+    flatpak install --user -y flathub org.freedesktop.Sdk//24.08
+    flatpak install --user -y flathub org.freedesktop.Sdk.Extension.rust-stable/x86_64/24.08
+
+    xkb="false"
+    fb="false"
+    # Check for libxkbcommon-dev installed or not
+    if command -v pkg-config > /dev/null 2>&1 && pkg-config --exists xkbcommon; then
+        echo "libxkbcommon-dev already installed."
+        xkb="true"
+    else
+        echo "libxkbcommon-dev needs installed. Trying automatic installation."
+    fi
+
+    if command -v pkg-config > /dev/null 2>&1 && pkg-config --exists flatpak-builder; then
+        echo "flatpak-builder already installed."
+        fb="true"
+    else
+        echo "flatpak-builder needs installed. Trying automatic installation."
+    fi
+    
+    if [[ "$xkb" == "true" ]]; then
+        if [[ "$fb" == "true" ]]; then
+            echo "All system dependencies installed."
+            exit 0
+        fi
+    fi
+    
+    # Detect distribution ID
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        echo "Attempting to install system dependencies for distribution: $ID"
+
+        case "$ID" in
+            pop)
+                sudo apt-get update && sudo apt-get install -y libxkbcommon-dev flatpak-builder
+                ;;
+            fedora)
+                sudo dnf install -y libxkbcommon-devel flatpak-builder
+                ;;
+            arch|manjaro|endeavouros|garuda)
+                sudo pacman -S --needed libxkbcommon flatpak-builder
+                ;;
+            opensuse*|suse)
+                sudo zypper install -y libxkbcommon-devel flatpak-builder
+                ;;
+            *)
+                echo "Distribution '$ID' detected but not automatically supported."
+                echo "Please install missing system dependencies listed above and try again."
+                exit 1
+                ;;
+            esac            
+    else
+        echo "Cannot detect distribution."
+        echo "Please install all system dependencies listed above manually and try again."
+        exit 1
+    fi
 
 # Install the flatpak bundle (installs deps first)
 install-bundle: install-deps
