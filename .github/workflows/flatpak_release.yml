@@ -11,6 +11,9 @@ jobs:
   build-flatpak:
     name: Build .flatpak for ${{ github.event.release.tag_name }}
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-action:gnome-48
+      options: --privileged
 
     steps:
       - name: Checkout source (tag)
@@ -19,47 +22,17 @@ jobs:
           ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
 
-      - name: Install Flatpak tooling
-        run: |
-          sudo apt update
-          sudo apt install -y --no-install-recommends \
-            flatpak flatpak-builder ostree elfutils
-
-      - name: Add Flathub (for Freedesktop runtime/Sdk)
-        run: |
-          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-
-      - name: Install runtime + Sdk
-        run: |
-          flatpak install -y --noninteractive --system \
-            flathub org.freedesktop.Platform//24.08 \
-            flathub org.freedesktop.Sdk//24.08 \
-            flathub org.freedesktop.Sdk.Extension.rust-stable//24.08
-
-      - name: Build Flatpak
-        run: |
-          set -euxo pipefail
-          MANIFEST="com.bhh32.gui-scale-applet.yml"
-          APP_ID="com.bhh32.gui-scale-applet"
-          RUNTIME_VER="24.08"
-
-          # Clean build dirs (in case of re-runs)
-          rm -rf .flatpak-builder build-dir repo
-          mkdir -p repo
-
-          # Build + install into a local repo
-          flatpak-builder --user --force-clean --repo=repo --install-deps-from=flathub --default-branch=stable build-dir "${MANIFEST}"
-
-          # Create a single-file bundle suitable for attaching to Releases
-          OUT="${APP_ID}-${{ github.event.release.tag_name }}.flatpak"
-          flatpak build-bundle repo "${OUT}" "${APP_ID}" stable \
-            --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
-
-          echo "BUNDLE_PATH=${OUT}" >> "$GITHUB_ENV"
+      - name: Build Flatpak Bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: com.bhh32.gui-scale-applet.yml
+          bundle: com.bhh32.gui-scale-applet-${{ github.event.release.tag_name }}.flatpak
+          cache-key: flatpak-builder-${{ github.sha }}
 
       - name: Upload bundle to this Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euxo pipefail
-          gh release upload "${{ github.event.release.tag_name }}" "${BUNDLE_PATH}" --clobber
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "com.bhh32.gui-scale-applet-${{ github.event.release.tag_name }}.flatpak" \
+            --clobber
