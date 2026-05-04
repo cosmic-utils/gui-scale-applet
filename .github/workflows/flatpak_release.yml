@@ -27,11 +27,11 @@ jobs:
 
       - name: Add Flathub (for Freedesktop runtime/Sdk)
         run: |
-          flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Install runtime + Sdk
         run: |
-          flatpak install -y --noninteractive --user \
+          flatpak install -y --noninteractive --system \
             flathub org.freedesktop.Platform//24.08 \
             flathub org.freedesktop.Sdk//24.08 \
             flathub org.freedesktop.Sdk.Extension.rust-stable//24.08
