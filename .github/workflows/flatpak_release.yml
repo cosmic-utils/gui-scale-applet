@@ -27,11 +27,11 @@ jobs:
 
       - name: Add Flathub (for Freedesktop runtime/Sdk)
         run: |
-          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Install runtime + Sdk
         run: |
-          flatpak install -y --noninteractive --system \
+          flatpak install -y --noninteractive --user \
             flathub org.freedesktop.Platform//24.08 \
             flathub org.freedesktop.Sdk//24.08 \
             flathub org.freedesktop.Sdk.Extension.rust-stable//24.08
@@ -48,7 +48,7 @@ jobs:
           mkdir -p repo
 
           # Build + install into a local repo
-          flatpak-builder --force-clean --repo=repo --install-deps-from=flathub --default-branch=stable build-dir "${MANIFEST}"
+          flatpak-builder --user --force-clean --repo=repo --install-deps-from=flathub --default-branch=stable build-dir "${MANIFEST}"
 
           # Create a single-file bundle suitable for attaching to Releases
           OUT="${APP_ID}-${{ github.event.release.tag_name }}.flatpak"
