@@ -30,10 +30,16 @@ jobs:
           bundle: com.bhh32.gui-scale-applet-${{ github.event.release.tag_name }}.flatpak
           cache-key: flatpak-builder-${{ github.sha }}
 
+      - name: Mark workspace safe for git
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Upload bundle to this Release
+        if: ${{ github.event_name == 'release' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ github.event.release.tag_name }}" \
-            "com.bhh32.gui-scale-applet-${{ github.event.release.tag_name }}.flatpak" \
-            --clobber
+          set -eux
+          TAG="${{ github.event.release.tag_name }}"
+          FILE="com.bhh32.gui-scale-applet-${{TAG}.flatpak}"
+          gh release upload "$TAG" "$FILE" --clobber
