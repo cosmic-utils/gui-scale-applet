@@ -10,7 +10,7 @@ The GUI Scale applet provides a user-friendly interface for managing Tailscale c
 
 ### Key Features
 
-- Secure Tailscale network (tailnet) managment
+- Secure Tailscale network (tailnet) management
 - Memory-safe implementation in Rust
     - Utilizes Rust's ownership system for memory-safety operations
     - No unsafe code blocks used
@@ -46,8 +46,10 @@ This makes it where the applet doesn't need sudo (root) to do its job.
 
 ## Screenshots
 
-![gui-scale-applet-panel](/screenshots/gui-scale-panel.png)
-![gui-scale-applet-open](/screenshots/gui-scale-applet-open.png)
+![connections tab](/screenshots/connections_tab.png)
+![taildrop tab](/screenshots/taildrop_tab.png)
+![devices tab](/screenshots/devices_tab.png)
+![settings_tab](/screenshots/settings_tab.png)
 
 ## Installation
 
