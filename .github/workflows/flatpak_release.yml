@@ -1,6 +1,7 @@
 name: Build Flatpak and upload to Release
 
 on:
+  workflow_dispatch:
   release:
     types: [published]
 
