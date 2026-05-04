@@ -18,7 +18,7 @@ status-accept-routes = Acceptera rutter
 status-magic-dns = MagicDNS
 status-magic-dns-suffix = MagicDNS suffix
 status-advertise-exit = Reklam som exit nod
-status-allow-lan-access = Tillåt LAN åtkomst när du använder exit nod
+status-allow-lan-access = Exit Node LAN Access
 status-connect-toggle = Anslut
 
 subnets-title = Reklamerade subnet-rutter

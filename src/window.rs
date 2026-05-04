@@ -24,16 +24,17 @@ use cosmic::{
     iced_runtime::core::window,
     task,
     widget::{
-        button, dropdown, icon, list_column, scrollable, settings, text, text_input, toggler,
+        button, container, dropdown, icon, list_column, scrollable, settings, text, text_input,
+        toggler,
     },
 };
 use std::{fmt::Debug, time::Duration};
 use url::Url;
 
-const POPUP_MAX_WIDTH: f32 = 720.0;
-const POPUP_MIN_WIDTH: f32 = 640.0;
-const POPUP_MAX_HEIGHT: f32 = 1080.0;
-const POPUP_MIN_HEIGHT: f32 = 200.0;
+const POPUP_MAX_WIDTH: f32 = 1440.0;
+const POPUP_MIN_WIDTH: f32 = 480.0;
+const POPUP_MAX_HEIGHT: f32 = 720.0;
+const POPUP_MIN_HEIGHT: f32 = 640.0;
 const STATUS_CLEAR_TIME: u64 = 5;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -817,11 +818,15 @@ impl Window {
             .spacing(0)
             .add(settings::item(
                 fl!("status-account"),
-                row![
+                column![
+                    container(
+                        button::standard(fl!("status-new-login"))
+                            .on_press(Message::LoginNewAccount)
+                    ),
                     dropdown(&self.acct_names, sel_acct_idx, Message::SwitchAccount),
-                    button::standard(fl!("status-new-login")).on_press(Message::LoginNewAccount),
                 ]
-                .spacing(8),
+                .spacing(8)
+                .align_x(Alignment::End),
             ))
             .add(settings::item(
                 fl!("status-ipv4"),
@@ -832,7 +837,7 @@ impl Window {
                         .tooltip(fl!("copy-tooltip")),
                 ]
                 .spacing(8)
-                .align_y(Alignment::Center),
+                .align_y(Alignment::End),
             ))
             .add(settings::item(
                 fl!("status-ipv6"),
@@ -843,40 +848,49 @@ impl Window {
                         .tooltip(fl!("copy-tooltip")),
                 ]
                 .spacing(8)
-                .align_y(Alignment::Center),
+                .align_y(Alignment::End),
             ))
             .add(settings::item(fl!("status-connection"), text(conn_status)))
             .add(settings::item(
                 fl!("status-enable-ssh"),
-                toggler(state.ssh_enabled).on_toggle(Message::EnableSSH),
+                container(toggler(state.ssh_enabled).on_toggle(Message::EnableSSH))
+                    .align_x(Alignment::End),
             ))
             .add(settings::item(
                 fl!("status-accept-routes"),
-                toggler(state.accept_routes).on_toggle(Message::AcceptRoutes),
+                container(toggler(state.accept_routes).on_toggle(Message::AcceptRoutes))
+                    .align_x(Alignment::End),
             ))
             .add(settings::item(
                 fl!("status-magic-dns"),
-                toggler(state.magic_dns).on_toggle(Message::ToggleMagicDns),
+                container(toggler(state.magic_dns).on_toggle(Message::ToggleMagicDns))
+                    .align_x(Alignment::End),
             ))
             .add(settings::item(
                 fl!("status-magic-dns-suffix"),
-                text(if state.dns_suffix.is_empty() {
+                container(text(if state.dns_suffix.is_empty() {
                     "—".to_string()
                 } else {
                     state.dns_suffix.clone()
-                }),
+                }))
+                .align_x(Alignment::End),
             ))
             .add(settings::item(
                 fl!("status-advertise-exit"),
-                toggler(state.is_exit_node).on_toggle(Message::UpdateIsExitNode),
+                container(toggler(state.is_exit_node).on_toggle(Message::UpdateIsExitNode))
+                    .align_x(Alignment::End),
             ))
             .add(settings::item(
                 fl!("status-allow-lan-access"),
-                toggler(state.exit_node_allow_lan).on_toggle(Message::AllowExitNodeLanAccess),
+                container(
+                    toggler(state.exit_node_allow_lan).on_toggle(Message::AllowExitNodeLanAccess),
+                )
+                .align_x(Alignment::End),
             ))
             .add(settings::item(
                 fl!("status-connect-toggle"),
-                toggler(state.connected).on_toggle(Message::ConnectDisconnect),
+                container(toggler(state.connected).on_toggle(Message::ConnectDisconnect))
+                    .align_x(Alignment::End),
             ));
 
         // Subnet routes section
@@ -919,6 +933,7 @@ impl Window {
                 Element::from(status_elements),
                 Element::from(subnets_section)
             ]
+            .width(1024)
             .spacing(8),
         )
     }
@@ -1031,7 +1046,8 @@ impl Window {
                 detail = detail.push(detail_row(fl!("devices-rx"), format_bytes(dev.rx_bytes)));
                 detail = detail.push(detail_row(fl!("devices-tx"), format_bytes(dev.tx_bytes)));
                 if !dev.online && !dev.last_seen.is_empty() {
-                    detail = detail.push(detail_row(fl!("devices-last-seen"), dev.last_seen.clone()));
+                    detail =
+                        detail.push(detail_row(fl!("devices-last-seen"), dev.last_seen.clone()));
                 }
 
                 let mut actions = row![].spacing(8);
@@ -1129,11 +1145,20 @@ impl Window {
             ))
             .add(settings::item(
                 fl!("settings-download-dir"),
-                row![
-                    text(download_dir).width(Length::Fill),
-                    button::standard(fl!("settings-change")).on_press(Message::ChooseDownloadDir),
-                ]
+                row![column![
+                    text(download_dir)
+                        .width(Length::Fill)
+                        .align_x(Alignment::End),
+                    container(
+                        button::standard(fl!("settings-change"))
+                            .on_press(Message::ChooseDownloadDir)
+                    )
+                    .width(Length::Fill)
+                    .padding(4)
+                    .align_x(Alignment::End)
+                ]]
                 .spacing(8)
+                .width(1024.0)
                 .align_y(Alignment::Center),
             ));
 

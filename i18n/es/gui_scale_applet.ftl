@@ -18,7 +18,7 @@ status-accept-routes = Rutas aceptadas
 status-magic-dns = MagicDNS
 status-magic-dns-suffix = Sufijo MagicDNS
 status-advertise-exit = Anuncio como nodo de salida
-status-allow-lan-access = Permitir el acceso a LAN mientras se utiliza el nodo de salida
+status-allow-lan-access = Acceso a Internet Nodo
 status-connect-toggle = Conectar
 
 subnets-title = Rutas de subred anunciadas

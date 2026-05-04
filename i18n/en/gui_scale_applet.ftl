@@ -18,7 +18,7 @@ status-accept-routes = Accept routes
 status-magic-dns = MagicDNS
 status-magic-dns-suffix = MagicDNS suffix
 status-advertise-exit = Advertise as exit node
-status-allow-lan-access = Allow LAN access while using exit node
+status-allow-lan-access = Exit Node LAN Access
 status-connect-toggle = Connect
 
 subnets-title = Advertised subnet routes

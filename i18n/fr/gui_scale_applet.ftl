@@ -18,7 +18,7 @@ status-accept-routes = Accepter les itinéraires
 status-magic-dns = MagicDNS
 status-magic-dns-suffix = Suffixe MagicDNS
 status-advertise-exit = Annoncer comme nœud de sortie
-status-allow-lan-access = Permettre l'accès au réseau local en utilisant le nœud de sortie
+status-allow-lan-access = Accès au réseau local de sortie
 status-connect-toggle = Connexion
 
 subnets-title = Itinéraires annoncés par sous-réseau
