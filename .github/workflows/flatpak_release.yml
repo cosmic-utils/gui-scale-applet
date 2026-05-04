@@ -41,5 +41,5 @@ jobs:
         run: |
           set -eux
           TAG="${{ github.event.release.tag_name }}"
-          FILE="com.bhh32.gui-scale-applet-${{TAG}.flatpak"
+          FILE="com.bhh32.gui-scale-applet-${TAG}.flatpak"
           gh release upload "$TAG" "$FILE" --clobber
