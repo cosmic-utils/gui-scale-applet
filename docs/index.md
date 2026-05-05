@@ -5,10 +5,10 @@ A secure, memory-safe implementation of a Tailscale GUI managmement applet.
 [Releases](https://github.com/cosmic-utils/gui-scale-applet/releases)  
 
 ## Screenshots
-![connections tab](./screenshots/connections_tab.png)  
-![taildrop tab](./screenshots/taildrop_tab.png)  
-![devices tab](./screenshots/devices_tab.png)  
-![settings_tab](./screenshots/settings_tab.png)  
+![connections tab]({{ site.baseurl }}/screenshots/connections_tab.png)  
+![taildrop tab]({{ site.baseurl }}/screenshots/taildrop_tab.png)  
+![devices tab]({{ site.baseurl }}/screenshots/devices_tab.png)  
+![settings_tab]({{ site.baseurl }}/screenshots/settings_tab.png)  
 
 ## Installation
 1. Download the latest flatpak bundle.
