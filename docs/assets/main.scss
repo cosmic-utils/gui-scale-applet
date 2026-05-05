@@ -34,6 +34,45 @@ h1, h2, h3, h4, h5, h6 {
   color: #f5e0dc;
 }
 
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  margin: 0.25rem 0.4rem 0.25rem 0;
+  border-radius: 999px;
+  border: 1px solid #313244;
+  background: 181825;
+  color: #cdd6f4 !important;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.pill-btn:hover, .pill-btn:focus {
+  background: #313244;
+  border-color: #45475a;
+  color: #cdd6f4 !important;
+  transform: translateY(-1px);
+}
+
+.pill-btn:active {
+  transform: translateY(0);
+}
+
+.pill-btn-secondary {
+  background: transparent;
+  border-color: #45475a;
+  color: #89b4fa; 
+}
+
+.pill-btn-secondary:hover,
+.pill-btn-secondary:focus {
+  background: #1e1e2e;
+  border-color: #89b4fa;
+  color: #89b4fa !important;
+}
+
 pre, code, .highlighter-rouge .highlight, figure.highlight {
   background: #11111b !important;
   color: #cdd6f4 !important;
