@@ -1,110 +1,30 @@
 ---
 ---
 
+$brand-color: #89b4fa;
+$site-title-color: #b4befe;
+$text-color: #cdd6f4;
+$background-color: #1e1e2e;
+$code-background-color: #11111b;
+$link-base-color: #89b4fa;
+$link-visited-color: #b4befe;
+$link-hover-color: #89dceb;   // sky
+$border-color-01: #313244;    // surface0
+$border-color-02: #45475a;    // surface1
+$border-color-03: #585b70;    // surface2
+
 @import "minima";
 
-:root {
-  --ctp-rosewater: #f5e0dc;
-  --ctp-flamingo: #f2cdcd;
-  --ctp-pink: #f5c2e7;
-  --ctp-mauve: #cba6f7;
-  --ctp-red: #f38ba8;
-  --ctp-maroon: #eba0ac;
-  --ctp-peach: #fab387;
-  --ctp-yellow: #f9e2af;
-  --ctp-green: #a6e3a1;
-  --ctp-teal: #94e2d5;
-  --ctp-sky: #89dceb;
-  --ctp-sapphire: #74c7ec;
-  --ctp-blue: #89b4fa;
-  --ctp-lavender: #b4befe;
-
-  --ctp-text: #cdd6f4;
-  --ctp-subtext1: #bac2de;
-  --ctp-subtext0: #a6adc8;
-
-  --ctp-overlay2: #9399b2;
-  --ctp-overlay1: #7f849c;
-  --ctp-overlay0: #6c7086;
-
-  --ctp-surface2: #585b70;
-  --ctp-surface1: #45475a;
-  --ctp-surface0: #313244;
-
-  --ctp-base: #1e1e2e;
-  --ctp-mantle: #181825;
-  --ctp-crust: #11111b;
-}
-
-/* Page background + text */
-html, body {
-  background: var(--ctp-base);
-  color: var(--ctp-text);
-}
-
-/* Links */
-a, a:visited {
-  color: var(--ctp-blue);
-}
-
-a:hover, a:focus {
-  color: var(--ctp-sky);
-  text-decoration-color: car(--ctp-sky);
-}
-
-/* Header - Footer */
-.site-header, .site-footer {
-  background: var(--ctp-mantle);
-  border-color: var(--ctp-surface);
-}
-
-.site-title, site-title:visited {
-  color: var(--ctp-lavender);
-}
-
-/* Main content */
-.page-content {
-  background: var(--ctp-base);
-}
-
-/* Headings */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--ctp-rosewater);
-}
-
-/* Code blocks */
+/* Small extras that Minima doesn’t fully cover */
 pre, code {
-  background: var(--ctp-crust);
-  color: var(--ctp-text);
-  border-color: var(--cpt-surface);
+  border-color: #313244;
 }
 
-pre {
-  border: 1px solid var(--ctp-surface);
+.site-header, .site-footer {
+  background: #181825; /* mantle */
+  border-color: #313244;
 }
 
-/* Inline code tweaks */
-code {
-  padding: 0.15em 0.35em;
-  border-radius: 6px;
-}
-
-/* Tables */
-table {
-  border-color: var(--ctp-mantle);
-}
-
-th, td {
-  border-color: var(--ctp-surface0);
-}
-
-/* Blockquotes */
-blockquote {
-  color: var(--ctp-subtext1);
-  border-left-color: var(--ctp-mauve);
-}
-
-/* make minima's subtl separators less bright */
-hr {
-  border-color: var(--ctp-surface0);
-}
+h1, h2, h3, h4, h5, h6 {
+  color: #f5e0dc; /* rosewater */
+} 
