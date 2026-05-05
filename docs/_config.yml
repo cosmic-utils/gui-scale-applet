@@ -1,0 +1,24 @@
+title: "GUI Scale Applet"
+description: "Tailscale GUI Applet"
+url: https://cosmic-utils.github.io"
+baseurl: "/gui-scale-applet"
+
+theme: minima
+
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+markdown: kramdown
+
+minima:
+  skin: auto
+
+header_pages:
+  - index.md
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: page
