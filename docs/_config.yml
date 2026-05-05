@@ -1,6 +1,6 @@
 title: "GUI Scale Applet"
 description: "Tailscale GUI Applet"
-url: https://cosmic-utils.github.io"
+url: "https://cosmic-utils.github.io"
 baseurl: "/gui-scale-applet"
 
 theme: minima
