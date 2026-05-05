@@ -1,8 +1,8 @@
 A secure, memory-safe implementation of a Tailscale GUI managmement applet.  
 
 ## Links
-<a href="https://github.com/cosmic-utils/gui-scale-applet class="pill-btn">GitHub Repo</a>
-a href="https://github.com/cosmic-utils/gui-scale-applet/releases" class="pill-btn">Releases</a>
+<a href="https://github.com/cosmic-utils/gui-scale-applet" class="pill-btn">GitHub Repo</a>
+<a href="https://github.com/cosmic-utils/gui-scale-applet/releases" class="pill-btn">Releases</a>
 
 ## Screenshots
 ![connections tab]({{ site.baseurl }}/assets/screenshots/connections_tab.png)  
