@@ -1,16 +1,14 @@
-# GUI Scale Applet
-
 A secure, memory-safe implementation of a Tailscale GUI managmement applet.  
 
 ## Links
-[GitHub Repo](https://github.com/cosmic-utils/gui-scale-applet)
+[GitHub Repo](https://github.com/cosmic-utils/gui-scale-applet)  
 [Releases](https://github.com/cosmic-utils/gui-scale-applet/releases)  
 
 ## Screenshots
-![connections tab](../screenshots/connections_tab.png)
-![taildrop tab](../screenshots/taildrop_tab.png)
-![devices tab](../screenshots/devices_tab.png)
-![settings_tab](../screenshots/settings_tab.png)
+![connections tab](./screenshots/connections_tab.png)  
+![taildrop tab](./screenshots/taildrop_tab.png)  
+![devices tab](./screenshots/devices_tab.png)  
+![settings_tab](./screenshots/settings_tab.png)  
 
 ## Installation
 1. Download the latest flatpak bundle.

@@ -34,8 +34,34 @@ h1, h2, h3, h4, h5, h6 {
   color: #f5e0dc;
 }
 
-pre, code {
-  background: #11111b;
-  color: #cdd6f4;
-  border-color: #313244;
+pre, code, .highlighter-rouge .highlight, figure.highlight {
+  background: #11111b !important;
+  color: #cdd6f4 !important;
+  border-color: #313244 !important;
 }
+
+code {
+  padding: 0.15em 0.35em;
+  border-radius: 6px;
+}
+
+pre {
+  border: 1px solid #313244 !important;
+  border-radius: 10px;
+}
+
+.highlight, .highlighter-rouge .hightlight {
+  background: #11111b !important;
+}
+
+/* Token colors (approx Catppuccin Mocha) */
+.highlight .c,  .highlight .cm, .highlight .c1 { color: #7f849c !important; font-style: italic; } /* comments overlay1 */
+.highlight .k,  .highlight .kd, .highlight .kn, .highlight .kp, .highlight .kr { color: #cba6f7 !important; } /* keywords mauve */
+.highlight .kt, .highlight .nc, .highlight .nn { color: #f9e2af !important; } /* types yellow */
+.highlight .s,  .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc, .highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sr, .highlight .ss { color: #a6e3a1 !important; } /* strings green */
+.highlight .m,  .highlight .mi, .highlight .mf, .highlight .mh, .highlight .mo { color: #fab387 !important; } /* numbers peach */
+.highlight .na, .highlight .nb, .highlight .nf { color: #89b4fa !important; } /* names/functions blue */
+.highlight .nt { color: #f38ba8 !important; } /* tags red */
+.highlight .o,  .highlight .ow { color: #89dceb !important; } /* operators sky */
+.highlight .p { color: #bac2de !important; } /* punctuation subtext1 */
+.highlight .err { background: #f38ba8 !important; color: #11111b !important; } /* error red */
