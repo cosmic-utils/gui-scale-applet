@@ -1,0 +1,45 @@
+name: Build Flatpak and upload to Release
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-flatpak:
+    name: Build .flatpak for ${{ github.event.release.tag_name }}
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
+      options: --privileged
+
+    steps:
+      - name: Checkout source (tag)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Build Flatpak Bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: com.bhh32.gui-scale-applet.yml
+          bundle: com.bhh32.gui-scale-applet-${{ github.event.release.tag_name }}.flatpak
+          cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Mark workspace safe for git
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Upload bundle to this Release
+        if: ${{ github.event_name == 'release' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eux
+          TAG="${{ github.event.release.tag_name }}"
+          FILE="com.bhh32.gui-scale-applet-${TAG}.flatpak"
+          gh release upload "$TAG" "$FILE" --clobber
