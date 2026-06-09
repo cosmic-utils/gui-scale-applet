@@ -17,11 +17,11 @@ use cosmic::{
     dialog::file_chooser::{self, FileFilter},
     iced::{
         self, Alignment, Length, Limits, Subscription,
+        core::window,
         platform_specific::shell::commands::popup::{destroy_popup, get_popup},
         widget::{column, row},
         window::Id,
     },
-    iced_runtime::core::window,
     task,
     widget::{
         button, container, dropdown, icon, list_column, scrollable, settings, text, text_input,
@@ -200,12 +200,11 @@ impl cosmic::Application for Window {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        let client = self.client.clone();
-        Subscription::run_with_id(
-            "ipn-bus",
-            iced::stream::channel(64, move |output| {
-                let client = client.clone();
-                async move {
+        Subscription::run_with("ipn-bus", |_| {
+            let client = TailscaleClient::new();
+            iced::stream::channel(
+                64,
+                move |output: iced::futures::channel::mpsc::Sender<Message>| async move {
                     loop {
                         let mut sender = output.clone();
                         let result = client
@@ -218,9 +217,9 @@ impl cosmic::Application for Window {
                         }
                         tokio::time::sleep(Duration::from_secs(2)).await;
                     }
-                }
-            }),
-        )
+                },
+            )
+        })
     }
 
     // Libcosmic's update function
@@ -814,8 +813,7 @@ impl Window {
         };
 
         let status_elements = list_column()
-            .padding(5)
-            .spacing(0)
+            .list_item_padding(5)
             .add(settings::item(
                 fl!("status-account"),
                 column![
@@ -1117,8 +1115,7 @@ impl Window {
             .unwrap_or_else(default_download_dir);
 
         let elements = list_column()
-            .padding(5)
-            .spacing(0)
+            .list_item_padding(5)
             .add(settings::item(
                 fl!("settings-auto-connect"),
                 toggler(prefs.auto_connect).on_toggle(Message::SetAutoConnect),

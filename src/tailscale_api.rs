@@ -223,9 +223,16 @@ pub struct PrefsUpdate {
     #[serde(rename = "ExitNodeIPSet", default, skip_serializing_if = "is_false")]
     pub exit_node_ip_set: bool,
 
-    #[serde(rename = "ExitNodeAllowLANAccess", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "ExitNodeAllowLANAccess",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub exit_node_allow_lan_access: Option<bool>,
-    #[serde(rename = "ExitNodeAllowLANAccessSet", default, skip_serializing_if = "is_false")]
+    #[serde(
+        rename = "ExitNodeAllowLANAccessSet",
+        default,
+        skip_serializing_if = "is_false"
+    )]
     pub exit_node_allow_lan_access_set: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -320,7 +327,7 @@ struct Notify {
 }
 
 /// A client for the Tailscale LocalAPI over Unix socket.
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct TailscaleClient {
     socket_path: String,
 }
