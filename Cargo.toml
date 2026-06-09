@@ -1,6 +1,6 @@
 [package]
 name = "gui-scale-applet"
-version = "3.10.0"
+version = "3.10.20"
 edition = "2024"
 
 [dependencies]

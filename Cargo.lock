@@ -1978,7 +1978,7 @@ checksum = "b40ca9252762c466af32d0b1002e91e4e1bc5398f77455e55474deb466355ff5"
 
 [[package]]
 name = "gui-scale-applet"
-version = "3.10.0"
+version = "3.10.20"
 dependencies = [
  "dirs 5.0.1",
  "http-body-util",
