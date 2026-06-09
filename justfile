@@ -47,9 +47,9 @@ clean:
 # Install required runtime dependencies for the flatpak bundle
 install-deps: 
     #!/usr/bin/env bash
-    flatpak install --user -y flathub org.freedesktop.Platform//24.08
-    flatpak install --user -y flathub org.freedesktop.Sdk//24.08
-    flatpak install --user -y flathub org.freedesktop.Sdk.Extension.rust-stable/x86_64/24.08
+    flatpak install --user -y flathub org.freedesktop.Platform//25.08
+    flatpak install --user -y flathub org.freedesktop.Sdk//25.08
+    flatpak install --user -y flathub org.freedesktop.Sdk.Extension.rust-stable/x86_64/25.08
 
     xkb="false"
     fb="false"
